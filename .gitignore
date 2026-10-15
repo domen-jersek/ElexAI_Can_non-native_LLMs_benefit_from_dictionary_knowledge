@@ -1,0 +1,27 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# --- Secrets / local env ---
+.env
+
+# --- Data (raw + processed are large / regenerable; see data/MANIFEST.json) ---
+/data/raw/
+/data/processed/
+/data/interim/
+
+# --- Experiment outputs ---
+/runs/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

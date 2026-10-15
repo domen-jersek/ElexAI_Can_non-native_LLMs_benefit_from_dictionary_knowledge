@@ -1,0 +1,64 @@
+# Docker Compose for the ELEXAI pilot research environment.
+#
+# Services are pinned by concrete image tags (never `latest`) - see docs/DECISIONS.md
+# for the rationale and data/DATA provenance notes.
+# Credentials and host ports come from .env (copy .env.example -> .env first).
+#
+# Usage:
+#   docker compose up -d postgres neo4j   # start services
+#   docker compose ps                     # health status
+#   docker compose down                   # stop (keeps data volumes)
+#   docker compose down -v                # stop and DELETE data volumes (full reset)
+
+name: elexai
+
+services:
+  postgres:
+    image: postgres:15.19-bookworm
+    container_name: elexai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    # Parallel queries allocate shared memory in /dev/shm; Docker's default is only
+    # 64 MB, which makes large parallel scans fail with a DiskFull error.
+    shm_size: "2gb"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Raw source data, mounted read-only, so pg_restore can read the DDDS snapshot
+      # without copying it into the container.
+      - ./data/raw:/raw:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  neo4j:
+    image: neo4j:5.26.32-community
+    container_name: elexai-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:?set in .env}/${NEO4J_PASSWORD:?set in .env}
+      # Default community settings are fine for the pilot; extend here if needed.
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+volumes:
+  postgres-data:
+  neo4j-data:
+  neo4j-logs:

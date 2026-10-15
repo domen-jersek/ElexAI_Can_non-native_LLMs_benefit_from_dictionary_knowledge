@@ -1,0 +1,9 @@
+# Normalize line endings to LF in the repository (checked out as LF everywhere),
+# so that generated files, makefiles and scripts are byte-identical across platforms.
+* text=auto eol=lf
+
+# Binary-ish files that must never be modified by Git.
+*.zip binary
+*.dat binary
+*.png binary
+*.jpg binary

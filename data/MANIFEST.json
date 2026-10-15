@@ -1,0 +1,1162 @@
+{
+  "schema": 1,
+  "created": "2026-10-15T16:27:22.240208+00:00",
+  "updated": "2026-10-15T16:27:22.240208+00:00",
+  "sources": {
+    "ddds_dump": {
+      "title": "Digital Dictionary Database of Slovene (DDDS) - PostgreSQL backup v3.68",
+      "authors": "Centre for Language Resources and Technologies (CJVT), University of Ljubljana",
+      "issued": "2026-10-07",
+      "license": "Not stated on the distribution page - internal research use only; do NOT redistribute raw files (see docs/DATA.md)",
+      "handle": null,
+      "download_url": "https://nas.cjvt.si/s/gTQjMiKzD53yxyd",
+      "notes": "Listed as 'Database dump v3.68 (07.10.2026)' on the CJVT wiki page 'Domain and data model links' (https://wiki.cjvt.si/books/digital-dictionary-database-of-slovene/page/domain-and-data-model-links). PostgreSQL 15.6 directory-format dump (pg_dump 15.8). Contains internal Django/admin/editor tables as well; the restore script excludes those.",
+      "subdir": "gigabaza-003-068-2026q",
+      "missing": false,
+      "files": [
+        {
+          "path": "4654.dat",
+          "size": 57,
+          "sha256": "7465046c5abc97cddccfc4d3ba3dd6cc9651e907ddf5854b1c3f18ebb8390b8a"
+        },
+        {
+          "path": "4656.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4658.dat",
+          "size": 41484,
+          "sha256": "da98817acb479f3a470b290afa7194a5073cac43a6904e074bbc53b5f8eb1f92"
+        },
+        {
+          "path": "4660.dat",
+          "size": 3283,
+          "sha256": "b543aaf7b76f4d7c31507f4364aa9ffaad8a242ab95e7f3eb4b93dd6a6d68220"
+        },
+        {
+          "path": "4661.dat",
+          "size": 149,
+          "sha256": "5a5a29881d5c562b26d70be95fd19888aa7812b66271af510b23ef46a75a894f"
+        },
+        {
+          "path": "4664.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4666.dat",
+          "size": 1184,
+          "sha256": "ff99b3554f04301c491c6eabb58420f9a4aef9b8f5edf7785b5f08ea5a453b2e"
+        },
+        {
+          "path": "4667.dat",
+          "size": 95,
+          "sha256": "f1ae1680a48d67f9dd0c18bd0feb566fcee12b32afe6a83a1bc214455668eceb"
+        },
+        {
+          "path": "4669.dat",
+          "size": 4238,
+          "sha256": "bf9830bd277a2f11fe79f497a84c9399a13752e9f1e716aef46da6a4f4c7f26f"
+        },
+        {
+          "path": "4671.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4673.dat",
+          "size": 5841913,
+          "sha256": "05a721a655f1126a568bbf294079dd46d314350b3fab616ccf59ab1da82c4689"
+        },
+        {
+          "path": "4675.dat",
+          "size": 4889,
+          "sha256": "06a56285219ce584bcb58176932dc85f3efce7cc65804b43181d58ee69a4c801"
+        },
+        {
+          "path": "4677.dat",
+          "size": 1585,
+          "sha256": "a57e0bd4333651ebf9d72d9ffdddacade897183ae500c04c9e4e5461c7375540"
+        },
+        {
+          "path": "4678.dat",
+          "size": 548,
+          "sha256": "5fb0ccfc7a1fe1dddb7ee7ac6726a87e42d07fce290564e60530c5846319337e"
+        },
+        {
+          "path": "4680.dat",
+          "size": 276,
+          "sha256": "081d352dc6d05a3f74b6535f8e21832c68de36f90d40f3ace441419a6412b349"
+        },
+        {
+          "path": "4682.dat",
+          "size": 24298314,
+          "sha256": "1457838e242e01ad7a1451643b8709b01c69f712752662225fa946e148c92152"
+        },
+        {
+          "path": "4684.dat",
+          "size": 172,
+          "sha256": "a988ec695312eebef29971bce9058ff89a69e9f6d4dda53d1b5a17acad583a2d"
+        },
+        {
+          "path": "4686.dat",
+          "size": 639065284,
+          "sha256": "79af8eb2ff4981c7c4a04cff59b5c50ea02aede5733a7b5f4fb7f357fc1b9831"
+        },
+        {
+          "path": "4687.dat",
+          "size": 1120957040,
+          "sha256": "f2fd147a9021c22d61c3eb1a2ce7694014ee5edd13d1cd7a14db5bdca28d8f4f"
+        },
+        {
+          "path": "4689.dat",
+          "size": 1936078677,
+          "sha256": "51fd417f6d15fa015c8dace3971f5acf43bb2fa372810e904019bfbb72daf642"
+        },
+        {
+          "path": "4691.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4692.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4694.dat",
+          "size": 1047703570,
+          "sha256": "79428e65dc1aa4c266028f879f54bb3aa8b648e74b87b8cc8a7b19c4776c5631"
+        },
+        {
+          "path": "4696.dat",
+          "size": 844533908,
+          "sha256": "ddc449240924ae69102a2952708b1ffde389d39a6aa0a9481bd45ee9b56c6a54"
+        },
+        {
+          "path": "4698.dat",
+          "size": 916697,
+          "sha256": "fcafdb59a2e81b44831a00db84b14cc638581adb2fb364c8a4ac56f005ffdf9b"
+        },
+        {
+          "path": "4700.dat",
+          "size": 86761,
+          "sha256": "37abccd58e76cb596089dc5b799d1278490aeccc019b3bee8e77bcf514a53fd9"
+        },
+        {
+          "path": "4702.dat",
+          "size": 8142457,
+          "sha256": "b63236784c62588ce167895ee383eceab15a17bad1e85df9af71911ff5b3b4b0"
+        },
+        {
+          "path": "4704.dat",
+          "size": 139,
+          "sha256": "13d581067e5a9080920a46ee39e4ecff60b73faa92f712d495eadac950948ef8"
+        },
+        {
+          "path": "4706.dat",
+          "size": 2539,
+          "sha256": "cf3df10e575e165ad2b3484c821fca6fe35203def711e007a8b9e98df7beb000"
+        },
+        {
+          "path": "4708.dat",
+          "size": 927,
+          "sha256": "7e54d6a33e81ec5d42950462c132e1b4b237e4644d3076260d48875dd60504e4"
+        },
+        {
+          "path": "4710.dat",
+          "size": 51820229,
+          "sha256": "21b146c4f1bd5b02055c295c26099a7e55aed15fc52a763515c6ea04aa1e1cdf"
+        },
+        {
+          "path": "4712.dat",
+          "size": 21166,
+          "sha256": "df9f414cbd82d5e79c02593f606d04f722891d4374391c004fc7e931c71cdcd8"
+        },
+        {
+          "path": "4714.dat",
+          "size": 152,
+          "sha256": "58c9dc0a2aa10f6e66137276262255fd025a7982f975052bf44e299bb7d6c7d5"
+        },
+        {
+          "path": "4716.dat",
+          "size": 2616312720,
+          "sha256": "ad67e74634d16e384618eae6d8381c8b8ea0b8eb2770dd375bdaab47fb847a36"
+        },
+        {
+          "path": "4718.dat",
+          "size": 120,
+          "sha256": "5d907e60f7e9689f631e85f327d8e36f4621c8b01194227cce7d5595726c3a2c"
+        },
+        {
+          "path": "4720.dat",
+          "size": 23132,
+          "sha256": "97d14770a7bc1a470c0a35fe43865dd38bdebf6c550532528f8a93de070fdeb2"
+        },
+        {
+          "path": "4722.dat",
+          "size": 42,
+          "sha256": "7d682dee38c8e3e05cdcf23ce3be0b50da801a672b036232dfff240a8b5ddbd7"
+        },
+        {
+          "path": "4724.dat",
+          "size": 1641498571,
+          "sha256": "deead75a3593da9f27f86c793a2b74d86f86cd96b89ca3498a60dbd6679faf95"
+        },
+        {
+          "path": "4726.dat",
+          "size": 596544335,
+          "sha256": "31f4b5814b5b63fca729d471ee44cbab0ec9c711190d330e3d06a0804903742e"
+        },
+        {
+          "path": "4728.dat",
+          "size": 411379313,
+          "sha256": "01646d447a0d1ded29a4898c4ece94910b527faf89dd023d1febf8252626eb2f"
+        },
+        {
+          "path": "4729.dat",
+          "size": 169,
+          "sha256": "408daf8833f47d92fdaa8f3ca7d70f597a47decfa0a6b586c7ad40d31617f797"
+        },
+        {
+          "path": "4732.dat",
+          "size": 1298436847,
+          "sha256": "1ce3db792be5aaa61fd3bbd260a46286aab725d0d364fc6ad24b7c494716e4aa"
+        },
+        {
+          "path": "4734.dat",
+          "size": 121,
+          "sha256": "b38b6038d4741e9b88e365a0b2d6269775043821965d1fe7530b9fe6a37457eb"
+        },
+        {
+          "path": "4736.dat",
+          "size": 149,
+          "sha256": "b1d21c53dad3a7f30e3cd160ba9bfc30eabd6acb41f62f07fd02fa4800f4de57"
+        },
+        {
+          "path": "4738.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4740.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4742.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4744.dat",
+          "size": 95,
+          "sha256": "6922b4854d24f6aa23da8f96d950c664fa20a55b01368ea1192951378da19cc2"
+        },
+        {
+          "path": "4746.dat",
+          "size": 63069680,
+          "sha256": "8e9fef8a20776369e28cf22714d2abf5209bd71f126528bf73ee97fc8882868d"
+        },
+        {
+          "path": "4748.dat",
+          "size": 19137321,
+          "sha256": "45607f7a1b17ea55f0ee6e6180b408d10e0b4f62480c60cd451a3370ac0ded79"
+        },
+        {
+          "path": "4750.dat",
+          "size": 10113017,
+          "sha256": "424a8770fbe9bd13627eb56be7e79fb9e377a0ab3c3bcb7d484d783f1ac6a155"
+        },
+        {
+          "path": "4752.dat",
+          "size": 3266035,
+          "sha256": "1221e8b7d596fb91df40c7ade3d8c12eb2ee131fc888de5b7bcc86d8858be6d4"
+        },
+        {
+          "path": "4754.dat",
+          "size": 94,
+          "sha256": "e06461798422204281c0da915d1185539b6bd6ee008631b12d4ac0f88e82bcaf"
+        },
+        {
+          "path": "4756.dat",
+          "size": 269298017,
+          "sha256": "50c73cb5fd090d7a3a7bdec516a8262fa1df105567f9865163384b7ddd12ce40"
+        },
+        {
+          "path": "4758.dat",
+          "size": 597910434,
+          "sha256": "84fee4e6fadfbc74d8a2a41e14644049185a83b60f10856051773c500fc8c4a6"
+        },
+        {
+          "path": "4760.dat",
+          "size": 34521653,
+          "sha256": "d97e974f45b98b4d54a9d35de05ec74530f3b9f161a8ee87deb92fc88026d183"
+        },
+        {
+          "path": "4761.dat",
+          "size": 589,
+          "sha256": "ea365bce90744cd40b167e31eece3a9d359a874e51e6548cf7bf23257ad34f01"
+        },
+        {
+          "path": "4763.dat",
+          "size": 153,
+          "sha256": "662cd762b42e9fe6e6472b1431f62d79008d2bbeb9f569ff669e0b40963c02e4"
+        },
+        {
+          "path": "4766.dat",
+          "size": 274,
+          "sha256": "a735e23f4805a92246cb7ed999f233647f8754036e208b70ebc410918f95e6ab"
+        },
+        {
+          "path": "4768.dat",
+          "size": 190,
+          "sha256": "8464e717765d3e035db7b1dc444db9fc983128d6618b8b1a2285e28f5a3063d8"
+        },
+        {
+          "path": "4770.dat",
+          "size": 81153,
+          "sha256": "f680a81c1dc792c3e42ad3945208475a89ac2a3b7185e3ceafbdd3d661f40d7b"
+        },
+        {
+          "path": "4772.dat",
+          "size": 3949509160,
+          "sha256": "d960937ac4a9fc71dc9f7c1a2dfe056b1d46fba77e54ea81e9e068cfe28d4793"
+        },
+        {
+          "path": "4774.dat",
+          "size": 77,
+          "sha256": "b2f519039e9f024f0bd29833c0372e6ba8193873efce907020ef08c17ce82dd4"
+        },
+        {
+          "path": "4776.dat",
+          "size": 1364,
+          "sha256": "9e518c0ff0f65df1a822cbe2c1e75dfa8793a5bdcd6adc98f0637b26e6984909"
+        },
+        {
+          "path": "4777.dat",
+          "size": 3902861473,
+          "sha256": "a8b133ffc516a335a5e4adf4df22324325ebc60f774763f871c92164730797b5"
+        },
+        {
+          "path": "4779.dat",
+          "size": 85,
+          "sha256": "300f5429914cc2df8af8499b17893dcc65520c8e5ea3481f9a5bdacc7ae9fb08"
+        },
+        {
+          "path": "4781.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4784.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4786.dat",
+          "size": 408734760,
+          "sha256": "413f547adaa6526f1b45d496b38339333f6a7317961e993eb57ca916cda4c464"
+        },
+        {
+          "path": "4787.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4790.dat",
+          "size": 397841603,
+          "sha256": "893c7dea631195860f5ca2a365f205aba8a858419f3ebbd1a6f3124b1d874496"
+        },
+        {
+          "path": "4792.dat",
+          "size": 4048447,
+          "sha256": "862fe1988f156048f39b2f711421513d52c3bebf2ea07c76c3b998093f9cf7d9"
+        },
+        {
+          "path": "4793.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4795.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4797.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4799.dat",
+          "size": 1675011487,
+          "sha256": "99d4207446eb091af43601fd6ad91b6dd0fe37999af32ba1a2971d5b9b6d5823"
+        },
+        {
+          "path": "4801.dat",
+          "size": 173,
+          "sha256": "1b54e6f29b48484834e89fefeadd78bfd2c12e9981e8245c47a2e70b243dd22e"
+        },
+        {
+          "path": "4803.dat",
+          "size": 94,
+          "sha256": "ccb40dc9f1ba89efe753ba4f1d8020275b16fa765702dbb185258855ae5948b0"
+        },
+        {
+          "path": "4805.dat",
+          "size": 467375099,
+          "sha256": "551cc269eb91f7082628ff42d6d143206274f10238a1cf7535d96e93c40d90fa"
+        },
+        {
+          "path": "4806.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4809.dat",
+          "size": 20169448,
+          "sha256": "e206c7efd00cb8cdda4da400cbc0c59a373786f8f771dc90d6796578c7608694"
+        },
+        {
+          "path": "4811.dat",
+          "size": 403,
+          "sha256": "b9a58d62be42a8f02951997f3895ee54e97780c659530be525a77af524792fd1"
+        },
+        {
+          "path": "4816.dat",
+          "size": 1710,
+          "sha256": "b270e73c3424eab94cdf492913934c4af56c645d5b774d631980d09246cc16d3"
+        },
+        {
+          "path": "4818.dat",
+          "size": 979206,
+          "sha256": "516a7ba3e22f6c673dfd4172117b789cf741d4c5052944e01029025c19b634f2"
+        },
+        {
+          "path": "4820.dat",
+          "size": 1349,
+          "sha256": "d475919d1fbf91aba9f2f9ce765300df412fb1c7b225924aa263d3d4aab180e5"
+        },
+        {
+          "path": "4822.dat",
+          "size": 141,
+          "sha256": "28924e721600b7263f63e1ef2b35b06bb580734f4d23c32d1e790bf6fbcb7f3b"
+        },
+        {
+          "path": "4824.dat",
+          "size": 182799,
+          "sha256": "065c01a4114b4fdf1e62f75f20a6c4844202de391fab8fdac5e022b306bb32af"
+        },
+        {
+          "path": "4826.dat",
+          "size": 6216653,
+          "sha256": "ab03d9f1c4ae13a08fd1d2d9c04a71af9f7b4b901b56e93abd697fd7e46a0490"
+        },
+        {
+          "path": "4827.dat",
+          "size": 314862,
+          "sha256": "8e89c932d76f17ee336c4caf0c9a97ddae584a0ea4621be98512b070d8f9c77d"
+        },
+        {
+          "path": "4830.dat",
+          "size": 432961077,
+          "sha256": "c784bf754d1b00ba113326fa1f37417bd5aca65d318aaa7e5b86d8f1579b715f"
+        },
+        {
+          "path": "4832.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4834.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4836.dat",
+          "size": 355267428,
+          "sha256": "c521e983d7d90c1353e021b7dcd9b52c3b50b2662070bce8e5ec4244ae43c8df"
+        },
+        {
+          "path": "4838.dat",
+          "size": 74553,
+          "sha256": "67ecd8e01e8f2e38515e8ff232e359f6d6b2cb216e9dbcd6c409483b04da5d11"
+        },
+        {
+          "path": "4840.dat",
+          "size": 37,
+          "sha256": "5ee01966155bc164abf5b8f9380e10bb2ee0e7509aa737721ed0877f9b523f70"
+        },
+        {
+          "path": "4842.dat",
+          "size": 108373,
+          "sha256": "7ff65ff82d6071c3c77406645c74ed766113897cc9f38f0bb6c9200d13fe4877"
+        },
+        {
+          "path": "4844.dat",
+          "size": 9035446,
+          "sha256": "757646a716801b17dc0d6fa71e8a99d0732d446ddf24243eefec1c282520b400"
+        },
+        {
+          "path": "4846.dat",
+          "size": 33887,
+          "sha256": "ca1e89149e9d47f6fbc916a7faba9d21a96ad6a2f1df9d423b335f9c3f6ebc46"
+        },
+        {
+          "path": "4848.dat",
+          "size": 693211,
+          "sha256": "ec9408daa3c60202449411c840c2871518b51282a16e300fbfd4e0bf2bf3c963"
+        },
+        {
+          "path": "4850.dat",
+          "size": 5,
+          "sha256": "912db542cbceae6c486480c89555c926655bb7300575c7f46b4e4b3a181e16ba"
+        },
+        {
+          "path": "4852.dat",
+          "size": 1084,
+          "sha256": "88b9784ad75a7a613468089c9c1ddd3e62b86a0418d50d7930476c9a67deec95"
+        },
+        {
+          "path": "4854.dat",
+          "size": 51,
+          "sha256": "723a2b752a59c6114da946b04e2f4db6dcb025313284ec5ecad77fa97c76f61b"
+        },
+        {
+          "path": "restore.sql",
+          "size": 285660,
+          "sha256": "b7b82917ff69d697833d587730804fbd70a0c1b4917e313211355ec9014a0470"
+        },
+        {
+          "path": "toc.dat",
+          "size": 387929,
+          "sha256": "cff115f15be86e71b273ab6e5db5c79ee673a258d4de244c995712e1148836a4"
+        }
+      ],
+      "total_size": 24873221176
+    },
+    "oswn": {
+      "title": "Open Slovene WordNet OSWN 1.0",
+      "authors": "Cibej, Jaka; Tercon, Luka; Krek, Simon; et al.",
+      "issued": "2023-11-10",
+      "license": "CC BY-SA 4.0",
+      "handle": "http://hdl.handle.net/11356/1888",
+      "download_url": "https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1888/open_slovene_wordnet_1.0.zip?sequence=3&isAllowed=y",
+      "notes": "",
+      "subdir": "open_slovene_wordnet_1.0",
+      "missing": false,
+      "files": [
+        {
+          "path": "open_slovene_wordnet_1.0/00README.txt",
+          "size": 5435,
+          "sha256": "f90242cf26e670db9d660038698e005a1913a70e043e66c0653c78065bf34bfd"
+        },
+        {
+          "path": "open_slovene_wordnet_1.0/open_slovene_wordnet.xml",
+          "size": 59036029,
+          "sha256": "03f802f10043ec7f75da234c98435f153c439af9e9c42a3b1c1467a79c7de379"
+        },
+        {
+          "path": "open_slovene_wordnet_1.0/WN-LMF-1.1.dtd",
+          "size": 10538,
+          "sha256": "fe6d0195327349dd46f7aa9927200f954064781af6008f9d2469bf73ad81849f"
+        }
+      ],
+      "total_size": 59052002
+    },
+    "oswn_ddds_link": {
+      "title": "List of Linked Senses from OSWN and DDDS 1.0",
+      "authors": "Cibej, Jaka; Krek, Simon; Laskowski, Cyprian; Bombek, Miha",
+      "issued": "2023-11-10",
+      "license": "CC BY 4.0",
+      "handle": "http://hdl.handle.net/11356/1897",
+      "download_url": "https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1897/oswn_ddds_linked_senses.zip?sequence=5&isAllowed=y",
+      "notes": "",
+      "subdir": "oswn_ddds_linked_senses",
+      "missing": false,
+      "files": [
+        {
+          "path": "oswn_ddds_linked_senses/00README.txt",
+          "size": 1035,
+          "sha256": "686339bf2b25ea63d2dbbd3d23ac9fb635b05b02e71015c34a5fcbcbd787ed38"
+        },
+        {
+          "path": "oswn_ddds_linked_senses/oswn_ddds_linked_senses.tsv",
+          "size": 7535036,
+          "sha256": "79814587e7eab9e1613be9b9fef0dab04df606c6a029c21629793f78ef1f417d"
+        }
+      ],
+      "total_size": 7536071
+    },
+    "sloleks": {
+      "title": "Morphological Lexicon of Slovene Sloleks 3.1",
+      "authors": "Cibej, Jaka; et al.",
+      "issued": "2026-02-03",
+      "license": "CC BY-SA 4.0",
+      "handle": "http://hdl.handle.net/11356/2080",
+      "download_url": "https://www.clarin.si/repository/xmlui/bitstream/handle/11356/2080/Sloleks.3.1.zip?sequence=1&isAllowed=y",
+      "notes": "Used for lemmatization of question sentences only (later phases).",
+      "subdir": "sloleks",
+      "missing": false,
+      "files": [
+        {
+          "path": "Sloleks.3.1/00README.txt",
+          "size": 10522,
+          "sha256": "6e7b2b7c2872ed45b13d38886c2f20b171f1fa2ee7c8e558796b7b3f71b1f4f2"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_001.xml",
+          "size": 190441470,
+          "sha256": "094839faa5e4798a7d92abb74695415eea1d172f0931ba6c222e5bc56b55109e"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_002.xml",
+          "size": 145482139,
+          "sha256": "2659e38d8f1ffe958b289b1f36bcd527c28e68d94eace56822fa76f35b3f163a"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_003.xml",
+          "size": 187140616,
+          "sha256": "59d66b4e3932cfa438b8a132a861ec836e9fa8d9d695aa60123434d610a35783"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_004.xml",
+          "size": 148517381,
+          "sha256": "2f557ec8fb7a3e02a76fd19f44f3c97f65f94dd05763696b2dec1e68fa23f299"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_005.xml",
+          "size": 157151860,
+          "sha256": "a71a77fb05f89d39b14b538cb66097a19cded2234ee7fd04e3aac9ebecd0737a"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_006.xml",
+          "size": 186274161,
+          "sha256": "4f9ddfdf89fa103662051a29e5d9e5685ef1e5316e0f1bbd0c22f813fa37a7da"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_007.xml",
+          "size": 139521877,
+          "sha256": "bd4521105c21e1c2c423768827d100b374957ae735498985fd18773eb441accb"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_008.xml",
+          "size": 191464583,
+          "sha256": "4c865374c604d3a505b5e5b93970bad5578a383051a8148079fa54b9b68dfbc3"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_009.xml",
+          "size": 141786776,
+          "sha256": "83b7357c9e7165162ce52673fc230391cdde26c94b77589475c521d5e8694819"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_010.xml",
+          "size": 183066549,
+          "sha256": "8e1346ce19cf09fcbec824c369daacdbee1575843853d2ae425e09f950374b38"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_011.xml",
+          "size": 197539916,
+          "sha256": "54b466977272b33c6be8f34a3dc46556865fced9fc18b19cc7569025e1094a4b"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_012.xml",
+          "size": 159420905,
+          "sha256": "c9bb6d064a17a93e60e307482c2bb4be34d161ce9382b75602a795d05a47ea1e"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_013.xml",
+          "size": 200608923,
+          "sha256": "9062ffe3d98717a0c2a1eba747af9efaffec25c439005995541664251124f424"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_014.xml",
+          "size": 110887936,
+          "sha256": "f8f8f9d876a9d221b159cc147acc9c455b88b29e27672cbea6b998416ba26cf5"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_015.xml",
+          "size": 205945778,
+          "sha256": "f7c012f3937215f53d7b341ab03ee76069c39b1cb6d75f364ee7192052b672dc"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_016.xml",
+          "size": 276334518,
+          "sha256": "25f937c88edf8bf46f65424175afd611a3fdebf45d50c2428a5b5048a73a8df8"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_017.xml",
+          "size": 93031626,
+          "sha256": "6a100a1dc8eef7b5d22e38de7c6bc3863fd2b2e1036264874d46e3a328e8940c"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_018.xml",
+          "size": 98318409,
+          "sha256": "7b8de8b247867d2a0fe5f3fcd9402a290094e012a8bdc1d23150b4c8442b487c"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_019.xml",
+          "size": 183269378,
+          "sha256": "f7e305848566d56e01f75a46e92efd8ea830f9efac792b57ef17b3dcdfec467f"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_020.xml",
+          "size": 205570026,
+          "sha256": "8e0928e3d4db18cd93128e3fb8eb4507f279dd3a2d6e2cfa221367fef07f8977"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_021.xml",
+          "size": 141484517,
+          "sha256": "efc692dc4c840af88c0327be44a3f554ec6e2bbafcd411f4b10ef48c4bd1626c"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_022.xml",
+          "size": 163816813,
+          "sha256": "b2148477237e4ec21cd8722c43002f8930bac0acc2c66392ff6ba1c4fa9ba9ed"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_023.xml",
+          "size": 131907233,
+          "sha256": "60223cdf456cd66c172aba07fcbbadb324cc6478d037dbaac35260cf316149c3"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_024.xml",
+          "size": 171427840,
+          "sha256": "f5f5eb6199ea019969fe50f12fdae62b98da6880ac264b5e48799f56690dbffe"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_025.xml",
+          "size": 180767674,
+          "sha256": "8a656b2ac6796a84b23c2b171539a218d7370de0b19b949fe2fd1f9d826a0462"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_026.xml",
+          "size": 154676342,
+          "sha256": "1b676b4fb47cd83aed45555d41b977799329870ddaf203c84c1ecd9bc55dcd8a"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_027.xml",
+          "size": 84989568,
+          "sha256": "067b57baba9d9b0da380010977ded898ffa491baa67ee3dfda77218db12bdfb2"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_028.xml",
+          "size": 93054603,
+          "sha256": "9702ecbe6eccdf9e5f0b016fb6b7e5ed8c54abb91e16d9f621b711fac1fe538d"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_029.xml",
+          "size": 103151196,
+          "sha256": "ba829871e571744f1652fcbb2d4c541990b32f98b16778d2ea9331a96838c9d7"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_030.xml",
+          "size": 102230956,
+          "sha256": "6724c1d7abedbbb80a6a33fc9c12fe2b45d4bcc96ae40216ce74948476a51b24"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_031.xml",
+          "size": 101571689,
+          "sha256": "83d6cd5b46a879bf596a0766815933549d883465376c4e24140b7551008a7493"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_032.xml",
+          "size": 101872036,
+          "sha256": "bda2f5ac194a996a38416b5b15d71199d28da92aa48d70e84db4ba716ec6c645"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_033.xml",
+          "size": 105025104,
+          "sha256": "7f91248eb969c6edf7d8e5561e815abd10baaad532dde5bb0f88241eee09e68d"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_034.xml",
+          "size": 103028417,
+          "sha256": "3548c67efa9c2917556bed0e25b356500c5f792d43a6753c58ec073172af48c2"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_035.xml",
+          "size": 102385610,
+          "sha256": "60730a71f4166b77871f20bfda723a7bb7b856d5ade5f9bbe6a9e75b6529157e"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_036.xml",
+          "size": 101747572,
+          "sha256": "646fc20ddc173db0a892d188adf15f47f1fe6a42f9d41a216ea9af7816e0f6b7"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_037.xml",
+          "size": 104916751,
+          "sha256": "67e44ae4a8042db1e27c59536afdbb451cd0932ae7ac625f9fb981bbb43d7526"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_038.xml",
+          "size": 104477746,
+          "sha256": "02ab7a6c62bea614f05aebb474d350104e0a0071d1ca28a49303c2049399fb4f"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_039.xml",
+          "size": 101198342,
+          "sha256": "e4f21972a9d724919555f11eee2af6d9b22b7f66070d939d8738de5ce8eb7976"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_040.xml",
+          "size": 101652781,
+          "sha256": "5a972a20d4cf81313300d80e34fb5de17d269b2cd9c42e3334a17f3d26b6e548"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_041.xml",
+          "size": 103475901,
+          "sha256": "a986f20e3308fddb3999d09dfa21eacb5ff5ad9b7f1c9cf43e90bd1c3b4a81a1"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_042.xml",
+          "size": 105218761,
+          "sha256": "30467c8e0f622efee9a9397e0aa654ebf4d6dc1970c09db2b47896f8e01f0790"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_043.xml",
+          "size": 108534843,
+          "sha256": "3b98309f870fe8b2b6b61ca02069cb79a40f5a65fd91f03e9af13a0184c10c1b"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_044.xml",
+          "size": 119742833,
+          "sha256": "af79a5afcc9bf8e865daa6c029f0fc18a5b6a49c4ea97382f69522d338384f6f"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_045.xml",
+          "size": 101221110,
+          "sha256": "e2775ea424ad28d87005c1c0a2d3ed209eccaeaa773c32e81c94dc164562f0eb"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_046.xml",
+          "size": 106655753,
+          "sha256": "61b02fd60feaba39527361d0f0982e907812d2d24fbbca1948d79eba74d2f78c"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_047.xml",
+          "size": 109298300,
+          "sha256": "efb28128e89033cfc9bb10efce23b07d1711650ba9b8b1d7afb98ab065e530b9"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_048.xml",
+          "size": 101577233,
+          "sha256": "08ade44a71d82aba127665dafcdf2a6628ad01d0b583d6aa9efb2ce245bfd4db"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_049.xml",
+          "size": 102209683,
+          "sha256": "bcee61820fad6c3ef5b8f4249707e07f534f61c305fc2d8e4b41916cda8a3183"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_050.xml",
+          "size": 105817846,
+          "sha256": "859d9bfe4d4b9deec6bf3e2b455cb8887668484293fe34959f5a517984d55728"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_051.xml",
+          "size": 101662255,
+          "sha256": "312b776f4dc91f0c2ccb949b56b23cdba6b3fd80c2c7f5bb3047d324b325c079"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_052.xml",
+          "size": 114109467,
+          "sha256": "357cf7109f9729c1c216930b8c707c4a8b22e3c2aea9a3a259af17c0407a9806"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_053.xml",
+          "size": 148230456,
+          "sha256": "18894b92f17dc18804f5f40e000f069a9304ebb0d7fe5c409a2f0218fab2bda0"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_054.xml",
+          "size": 102014845,
+          "sha256": "803e7e979d855aa5ffa89a9d29548f82ca64b50cb227d0d1fa2ce29a5c543b22"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_055.xml",
+          "size": 143824159,
+          "sha256": "ff7c89a603a73ce8539c4a52407193d96c11ca8043ba0a805fbd1149d8dfe2f0"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_056.xml",
+          "size": 115624927,
+          "sha256": "4700e8c55cf26311f0b50e41547f6f633f57f65928e83dfaee33ab23b6d20d6a"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_057.xml",
+          "size": 104725882,
+          "sha256": "a7384cf9b601bbd69e70310b65d1b686f57f6327bf5b5fbaad630d968e52dbac"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_058.xml",
+          "size": 147110042,
+          "sha256": "49527a8cf583e5730594b21ce2741a9197d05726107026ede9d927bc27df701e"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_059.xml",
+          "size": 134759381,
+          "sha256": "87dc4a162eab29769ff8b400d4be59f954d82bcd4276666a85c881356acf67e1"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_060.xml",
+          "size": 134202269,
+          "sha256": "d89106c1fa4d2b2a76e9f2f310194e3868ea79d824ed1a567e3903ab5811ff2a"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_061.xml",
+          "size": 124187747,
+          "sha256": "923048ecefea7248913886187b249bd3fd555d089b8571f604b12cfd42ccb21b"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_062.xml",
+          "size": 130908602,
+          "sha256": "72890206302d71cda84d7e6140a8846d97b0538036e51cb1d227256b4b80644f"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_063.xml",
+          "size": 162969022,
+          "sha256": "a5ac44ba0cffff874bbe56e41f0009c4dc8d646feaec334a5b3b0643bdcc7799"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_064.xml",
+          "size": 110369103,
+          "sha256": "7a32a1c5b47e060e25c8400e212c8bcc12d0bf0e08d49cf0753b67e4fa971fae"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_065.xml",
+          "size": 124300053,
+          "sha256": "e04f8ae996b2ca7ed24e673f412e2aacac0051b903b62cf36c8023d675cb075a"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_066.xml",
+          "size": 161301729,
+          "sha256": "8aa86f41ee70713f0bda2de48ce153afcf67d911b44559cebf3641d89d0bcb99"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_067.xml",
+          "size": 102271884,
+          "sha256": "af5d0b4286d174933648ec9bfec3f2b0ca4bbd4e9721f25576b7c3b394ac6a8d"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_068.xml",
+          "size": 196445020,
+          "sha256": "e4cbe7ef5960cf25face69a8047f7d68854d2eb37b1721bf95fbe4abde046d8c"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_069.xml",
+          "size": 141703733,
+          "sha256": "a731102dcae577cff69b5a82eea712890a33a87cfcfffa1542bf5e6bd7ea4348"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_070.xml",
+          "size": 266362559,
+          "sha256": "c3759c3c963d838494d0191545c6e5685f8ceb1ee8301d0b6b69da366a52cf6e"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_071.xml",
+          "size": 79738219,
+          "sha256": "b0a64adea708260e96adbf87608b0e576ee04785b67eb6271084b9e29bd124e0"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_072.xml",
+          "size": 137581070,
+          "sha256": "d7b3d702610e961a34201a40317029174cb896c743d2ce1c49b2d175455372eb"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_073.xml",
+          "size": 139555496,
+          "sha256": "eb5fc59c902920eed80b4b6c4ff0854c95c3d54cac176114316a4129d8e690da"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_074.xml",
+          "size": 145563644,
+          "sha256": "2dd9c2a306f6eac12a50beff0a5baefd02b7bcbed81ebd49a6018067c170e45f"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_075.xml",
+          "size": 101507843,
+          "sha256": "e35fbcfbc4e903706327ad1fb72168d9034930165e99ff9f19a5af8d20207320"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_076.xml",
+          "size": 144028415,
+          "sha256": "312e38204a3030d10b8ed7baed8ff0d0f7a1b023436728155d15b10b98dc7f11"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_077.xml",
+          "size": 162691884,
+          "sha256": "809f079bf393c297a713b78452d3b07f082fd8ce1a0cfb4001e0f99e8cd778a3"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_078.xml",
+          "size": 105903282,
+          "sha256": "11cd9fd6be2cc2d8b91fe348e06228e3319c618577d9c6cec0cdcaa03aebd48e"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_079.xml",
+          "size": 143763417,
+          "sha256": "bf47a3f722a681270528b9997834a1a7ed06012d3db5dcf71bad96fe3f6feabc"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_080.xml",
+          "size": 128267657,
+          "sha256": "425d51ae2afeb84416a40ab0875975449d24d1be76cc0919019113919a20e284"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_081.xml",
+          "size": 102257387,
+          "sha256": "403905e2f68218cf1b8d755a7cae7498abc86d98692d24cbe83a5a0eb9ab53c1"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_082.xml",
+          "size": 102824625,
+          "sha256": "f8e4b4295b072620c3deef95a3df154428099ea5711bc19d2f9fb952c4838a71"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_083.xml",
+          "size": 101837196,
+          "sha256": "beeb69c82c5bb3c40d1abd07fb475d19975d61680b89f5ff53b3d5b649308138"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_084.xml",
+          "size": 101862459,
+          "sha256": "8036640c582ae8f28a4e86d59bfd8d4735a2fd49d2e4c21ba487213afbdb2eea"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_085.xml",
+          "size": 100913547,
+          "sha256": "640232062b16f6bc43708a503646228ed345c0736103d977a87b0214e8fee2d0"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_086.xml",
+          "size": 102203465,
+          "sha256": "e2f1780d7dd41fefad0f8d5f06ccceddde902e23bdc970242759d6a9939dab5d"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_087.xml",
+          "size": 101477201,
+          "sha256": "e822980f7f169b756911bc7e1ddc5644706e45fbb72b4f9471cf1684e02f8073"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_088.xml",
+          "size": 101558155,
+          "sha256": "102d831eb70daca5bbe90f364114e6fddbed8586b0077258f4c628d940490c30"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_089.xml",
+          "size": 102170473,
+          "sha256": "c3cb6c876097cc5b6bc53840fd9ef70a18225db333708f294a7e66e9b4fc6932"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_090.xml",
+          "size": 101910699,
+          "sha256": "879d2851026e71e93c12d575928b086a1aeda7dc94b148bf6dc55da066db236d"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_091.xml",
+          "size": 101962171,
+          "sha256": "5f5f942548407899ed46f1ad9b49011c7390ba750a702d3ab5da11cfe86fa309"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_092.xml",
+          "size": 102592341,
+          "sha256": "1085f58b2ac2869955dece8ce64a5d1a9848eb64177b32cd9188d7b0151b723b"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_093.xml",
+          "size": 101011200,
+          "sha256": "ea538bac1ca5dea70e087d086e34e882b6107eb6912b7f678e792dc095b2f2b7"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_094.xml",
+          "size": 102437299,
+          "sha256": "1135e4433e3b883c973e7d58b4e98d72d7dadd019ea2eade5be3a66753c2a54d"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_095.xml",
+          "size": 101441494,
+          "sha256": "b23b27d8efd694ced1ee3e7ad687c5e2678c771cfbb513e428fb34043e31c155"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_096.xml",
+          "size": 101913718,
+          "sha256": "cfa1eef2ea4e2a7cc921592611edbab2852d42a437248a7ea29b5addf50fddeb"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_097.xml",
+          "size": 102714430,
+          "sha256": "29b40f79811c800c8c22e6eefd2b538e59eb00ea2538ba1dc2017c8552afa1d9"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_098.xml",
+          "size": 100817467,
+          "sha256": "e4dc5befecec691704a259e1d698208d96b7754313360d8ded3d3b971ec523c7"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_099.xml",
+          "size": 101931653,
+          "sha256": "1c41fef3b550dd5eb5849970774e4e4c4df86b67a3bb277bf8fc52852193122f"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_100.xml",
+          "size": 101943615,
+          "sha256": "aa6e9b780f2e49234dcd2a4d47ca008764751863f7e41f5c38ad3d03a30a7989"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_101.xml",
+          "size": 101986200,
+          "sha256": "707a9f7f62375e6204421d60f56061158180e3b31d74a7a76c55ec467b8115b1"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_102.xml",
+          "size": 49360174,
+          "sha256": "a510805d1981486f8c16f0e15490e9713f3cf98d1bff00fd0ce5b01e15ffa7af"
+        },
+        {
+          "path": "Sloleks.3.1/sloleks_3.1_mezzanine.xml",
+          "size": 141710083,
+          "sha256": "0ceeafe1ed09ffed0badbe34717d2851cf653f9760ac88e01eedba479d574fe5"
+        },
+        {
+          "path": "Sloleks.3.1/xml_schemas/inventory.xsd",
+          "size": 29809,
+          "sha256": "f9f8772185f84a8ef358dcd06353353e75fa4d3bab0aeca8b4864e1060dc280a"
+        },
+        {
+          "path": "Sloleks.3.1/xml_schemas/morphological_lexicon.xsd",
+          "size": 1786,
+          "sha256": "5fcf19117d14bdf9e39d43b21259f666e9fe553deaae0827fc7e5c2e89cc2068"
+        }
+      ],
+      "total_size": 13207473111
+    },
+    "slownet": {
+      "title": "Semantic lexicon of Slovene sloWNet 3.1",
+      "authors": "Fiser, Darja",
+      "issued": "2015-05-07",
+      "license": "CC BY-SA 4.0",
+      "handle": "http://hdl.handle.net/11356/1026",
+      "download_url": "https://www.clarin.si/repository/xmlui/bitstream/handle/11356/1026/slownet.zip?sequence=9&isAllowed=y",
+      "notes": "Not used as the pilot dictionary: only 3,177 of 117,658 synsets have Slovene definitions (and 4,390 Slovene usage sentences). Kept for reference.",
+      "subdir": "slownet",
+      "missing": false,
+      "files": [
+        {
+          "path": "slownet-2015-05-07.xml",
+          "size": 71543175,
+          "sha256": "deae117a6c007369c75033d5fec8f3f6c410d1d416924b5e5a29ce0b2de90543"
+        },
+        {
+          "path": "slownet.dtd",
+          "size": 1085,
+          "sha256": "355ad23729c88d29d81db75cfc5edadc6038aa4087bbae5616e6a085e3c6c61b"
+        }
+      ],
+      "total_size": 71544260
+    }
+  }
+}

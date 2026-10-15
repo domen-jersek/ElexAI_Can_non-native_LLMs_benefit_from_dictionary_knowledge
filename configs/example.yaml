@@ -1,0 +1,26 @@
+# Example experiment configuration for the ELEXAI pilot.
+# One YAML file fully describes one run; nothing about the LLM, embedder or
+# retrieval depth is hardcoded anywhere else (see src/elexai/config.py).
+name: example-a-b-oracle
+description: >
+  Sense-disambiguation pilot over DDDS backup v3.68. All variants share the
+  same LLM, question set and prompt templates; only the supplied context
+  differs. Variant C is added when the graph loader lands (Phase 3).
+variants: [A, B, oracle]
+questions_path: data/questions/questions.jsonl
+llm:
+  provider: openrouter
+  base_url: https://openrouter.ai/api/v1
+  model: openai/gpt-6-luna      # must stay identical across variants in one run
+  api_key_env: OPENROUTER_API_KEY
+  temperature: 0.0
+  max_tokens: 800
+embedder:
+  name: bge-m3
+  hf_id: BAAI/bge-m3
+  revision: main                # TODO: pin exact HF commit hash before real runs
+retrieval:
+  k: 5
+  sweep_k: [1, 3, 5, 10]
+  metric: cosine
+seed: 0
