@@ -19,6 +19,7 @@ build/
 
 # --- Experiment outputs ---
 /runs/
+/.cache/
 
 # --- OS / editors ---
 .DS_Store

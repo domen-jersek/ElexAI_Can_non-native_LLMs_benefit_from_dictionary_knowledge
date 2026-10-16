@@ -203,3 +203,10 @@ obligations - keep attribution in `data/MANIFEST.json` and here.
   always pin the DDDS snapshot version when joining external id lists.
 - The Docker Postgres container needs `shm_size: 2gb` and heavy analytic queries
   should disable per-gather parallelism (see D-011).
+- Some common lemmas have **no lexeme rows** in v3.68 at all (verified: *miška*,
+  *ključ*, *žerjav* return zero matches, even with diacritic variants) - check lemma
+  existence before assuming coverage; the pilot questions avoid such words.
+- The pilot's working artifact is `data/processed/ddds/lexical_core.jsonl`:
+  131,056 senses with definitions, all definitions attached, plus one-hop relations
+  (18,283 synonyms, 1,168 antonyms, 5,414 hypernyms, 3,890 hyponyms and 986,354
+  typical-collocation `dependency` rows, capped at 24/sense). Regenerate: `make core`.

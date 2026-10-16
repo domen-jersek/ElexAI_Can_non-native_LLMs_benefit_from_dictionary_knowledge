@@ -38,6 +38,7 @@ class Question(BaseModel):
     target_word: str = Field(min_length=1)
     lemma: str = Field(min_length=1)
     pos: str = Field(min_length=1)
+    question_type: Literal["sense_disambiguation", "relation"] = "sense_disambiguation"
     context_sentence: str = Field(min_length=1)
     gold_sense_id: str = Field(min_length=1)
     gold_answer: str = Field(min_length=1)

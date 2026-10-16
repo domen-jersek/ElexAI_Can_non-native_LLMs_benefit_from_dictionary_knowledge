@@ -159,3 +159,49 @@ Options (needs Klemen, possibly CJVT):
 
 Interim plan: implement variant C against DDDS structure; keep the OSWN layer
 configurable so a re-linked mapping can be plugged in without code changes.
+
+## D-013 (2026-10-16) - Sequencing amended: walking skeleton before any graph work
+
+Per review feedback (and Claude's analysis of the pilot brief): variants A and B need
+no graph at all, and the fastest way to learn whether there is signal is a thin
+vertical slice. Decision: build the "walking skeleton" first (variants A, B, C and
+oracle over the current dictionary core, LLM-free scoring, reports), then run it,
+then decide further work with Klemen. Variant C is implemented over the structured
+``lexical_core`` export behind the same retriever interface a graph backend would
+use - the task wording is "strukturirane podatke oziroma graf", so Neo4j is a
+possible later backend, not a prerequisite for the first results.
+
+## D-014 (2026-10-16) - Evaluation protocol v1 (single template, per-variant primary metrics)
+
+- One prompt template (`sd-v1`, `src/elexai/llm/prompts.py`) for ALL variants; the
+  only difference between variant prompts is the context block (A renders "(Ni na
+  voljo.)"). Recorded as `template_version` in every run manifest.
+- Primary metric: **exact DDDS sense-ID citation** for variants B, C and oracle
+  (the model must output `SENSE_ID: <id>`); variant A cannot cite ids and is scored
+  by token-F1 of the free-text answer vs the gold answer (threshold configurable,
+  default 0.6). Token-F1 is also reported for all variants.
+- Oracle context = gold sense + up to `structured.oracle_max_candidates - 1`
+  neighbouring senses of the same lemma: retrieval cannot fail by construction, so
+  oracle failures are answer-composition errors.
+- Error split: B = retrieval miss (gold not retrieved) vs composition; C = coverage
+  miss (gold not among shown lemma senses) vs composition; B additionally reports
+  recall@k. An optional LLM judge remains a later, separately-configured step.
+
+## D-015 (2026-10-16) - Pinned first-run defaults
+
+OpenRouter model `openai/gpt-6-luna` (cheap current tier; identical across variants,
+temperature 0). Embedder for the real run: BGE-M3 @ commit
+`5617a9f61b028005a4858fdac845db406aefb181`; smoke config uses multilingual-e5-small
+@ `614241f622f53c4eeff9890bdc4f31cfecc418b3` with a 20k-chunk corpus limit (plumbing
+only - smoke numbers are not meaningful). Retrieval: exact `faiss.IndexFlatIP`
+(cosine, normalized), `k=5`, sweep `[1, 3, 5, 10]`.
+
+## D-016 (2026-10-16) - Variant C context: collocations ("Zveze") from dependency relations
+
+Data-driven choice: sense-level synonyms on definition-bearing senses are sparse in
+DDDS (18,283 rows), while `dependency` sense relations - the typical collocations of
+a sense ("kos kruha", "kos pogače") - are rich (986,354 kept across 84,641 senses;
+export caps 24 per sense, prompts show up to 8). Hypernym/hyponym pairs are tiny
+(5,414 / 3,890) and kept when present. C therefore renders "Sopomenke" (when any)
+plus "Zveze"; B stays text-only (definition chunks) so the B/C contrast remains
+"text search vs structured lookups".

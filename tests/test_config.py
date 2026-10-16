@@ -26,7 +26,7 @@ def test_defaults_are_sane():
     cfg = ExperimentConfig(name="x")
     assert cfg.llm.temperature == 0.0
     assert cfg.retrieval.sweep_k == [1, 3, 5, 10]
-    assert set(cfg.variants) == {"A", "B", "oracle"}
+    assert set(cfg.variants) == {"A", "B", "C", "oracle"}
 
 
 def test_unknown_variant_rejected():

@@ -1,8 +1,8 @@
-"""Configuration models for the pipeline steps that follow Phase 0.
+"""Configuration models for the pipeline steps (everything is config-driven).
 
 Nothing in this repository may assume a specific LLM, embedder or retrieval
 depth: every run is fully described by one YAML file under ``configs/``,
-validated by these pydantic models (see ``configs/example.yaml``). Model
+validated by these pydantic models (see ``configs/skeleton.yaml``). Model
 identifiers, embedding models and ``k`` are always supplied via configuration
 so that alternative setups can be run and compared after the fact.
 """
@@ -32,7 +32,7 @@ class LlmConfig(BaseModel):
 
 
 class EmbedderConfig(BaseModel):
-    """Serving-time text embedder for variant B; swappable via config only.
+    """Text embedder for variant B; swappable via config only.
 
     ``revision`` must be pinned to an exact Hugging Face commit hash before
     any numbers are published.
@@ -53,6 +53,22 @@ class RetrievalConfig(BaseModel):
     k: int = 5
     sweep_k: list[int] = [1, 3, 5, 10]
     metric: Literal["cosine", "l2", "ip"] = "cosine"
+    corpus_limit: int | None = None  # dev/testing only; None = full corpus
+
+
+class StructuredConfig(BaseModel):
+    """Variant C / oracle lookups over the structured dictionary export."""
+
+    max_senses: int = 12  # candidate cap for variant C (lemma's own senses)
+    synonyms_per_sense: int = 5
+    max_dependencies: int = 8  # "Zveze" (typical collocations) shown per sense
+    oracle_max_candidates: int = 5
+
+
+class EvalConfig(BaseModel):
+    """Scoring options; scoring is separate from generation (see scripts/evaluate.py)."""
+
+    answer_f1_threshold: float = 0.6  # for variants without an id to cite
 
 
 class ExperimentConfig(BaseModel):
@@ -60,11 +76,15 @@ class ExperimentConfig(BaseModel):
 
     name: str
     description: str = ""
-    variants: list[Variant] = ["A", "B", "oracle"]
+    variants: list[Variant] = ["A", "B", "C", "oracle"]
     questions_path: Path = Path("data/questions/questions.jsonl")
     llm: LlmConfig = Field(default_factory=LlmConfig)
     embedder: EmbedderConfig = Field(default_factory=EmbedderConfig)
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
+    structured: StructuredConfig = Field(default_factory=StructuredConfig)
+    eval: EvalConfig = Field(default_factory=EvalConfig)
+    index_dir: Path = Path("data/processed/index")
+    cache_dir: Path = Path(".cache/llm")
     runs_dir: Path = Path("runs")
     seed: int = 0
 

@@ -1,0 +1,215 @@
+"""LLM-free scoring for sense-disambiguation runs (generation is separate).
+
+Reads ``runs/<run_id>/answers.jsonl`` (+ the questions file referenced by the
+resolved config) and computes, per variant:
+
+- citation accuracy (does the cited DDDS sense id match the gold id; variants
+  with a candidate list) and ``none``-citation counts;
+- answer quality vs the (draft) gold answer text: token F1 + threshold accuracy;
+- latency p50/p95 over non-cached successful calls, cache-hit counts;
+- variant B: recall@k from the logged retrieval + retrieval-vs-composition
+  error split; variant C: candidate-coverage-vs-composition split;
+  oracle: composition-only split;
+- per-question rows for eyeballing and the report.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import unicodedata
+from collections import Counter
+from pathlib import Path
+
+import yaml
+
+_PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)
+
+
+def normalize_text(text: str) -> str:
+    text = unicodedata.normalize("NFC", text or "").lower()
+    text = _PUNCT_RE.sub(" ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def token_f1(prediction: str, gold: str) -> float:
+    pred = normalize_text(prediction).split()
+    ref = normalize_text(gold).split()
+    if not pred or not ref:
+        return 0.0
+    pred_counts, ref_counts = Counter(pred), Counter(ref)
+    overlap = sum((pred_counts & ref_counts).values())
+    if overlap == 0:
+        return 0.0
+    precision = overlap / len(pred)
+    recall = overlap / len(ref)
+    return 2 * precision * recall / (precision + recall)
+
+
+def percentile(values: list[float], q: float) -> float | None:
+    """Linear-interpolation percentile (q in [0, 100]); None for empty input."""
+    if not values:
+        return None
+    values = sorted(values)
+    if len(values) == 1:
+        return float(values[0])
+    rank = (q / 100) * (len(values) - 1)
+    lo = int(rank)
+    hi = min(lo + 1, len(values) - 1)
+    frac = rank - lo
+    return float(values[lo] + (values[hi] - values[lo]) * frac)
+
+
+def _load_answers(run_dir: Path) -> list[dict]:
+    rows = []
+    with (run_dir / "answers.jsonl").open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
+def _load_gold_answers(run_dir: Path, repo_root: Path) -> dict[str, str]:
+    cfg = yaml.safe_load((run_dir / "config.resolved.yaml").read_text(encoding="utf-8"))
+    questions_path = Path(cfg["questions_path"])
+    if not questions_path.is_absolute():
+        questions_path = repo_root / questions_path
+    gold: dict[str, str] = {}
+    for line in questions_path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            gold[rec["id"]] = rec["gold_answer"]
+    return gold
+
+
+def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
+    run_dir = Path(run_dir)
+    cfg = yaml.safe_load((run_dir / "config.resolved.yaml").read_text(encoding="utf-8"))
+    sweep_k = cfg["retrieval"]["sweep_k"]
+    k_generation = cfg["retrieval"]["k"]
+    threshold = cfg["eval"]["answer_f1_threshold"]
+    gold_answers = _load_gold_answers(run_dir, repo_root)
+
+    rows = _load_answers(run_dir)
+    variants: dict[str, dict] = {}
+    per_question: list[dict] = []
+
+    for variant in sorted({r["variant"] for r in rows}):
+        vrows = [r for r in rows if r["variant"] == variant]
+        n = len(vrows)
+        errors = sum(1 for r in vrows if r.get("error"))
+        cache_hits = sum(1 for r in vrows if r.get("cache_hit"))
+        latencies = [
+            r["latency_ms"]
+            for r in vrows
+            if r.get("latency_ms") is not None and not r.get("cache_hit") and not r.get("error")
+        ]
+
+        citation_total = 0
+        citation_correct = 0
+        cite_none = 0
+        f1s: list[float] = []
+        f1_correct = 0
+        retrieval_hits_by_k: dict[int, int] = {k: 0 for k in sorted({*sweep_k, k_generation})}
+        retrieval_misses = 0
+        coverage_misses = 0
+        composition_errors = 0
+        retrieval_errors = 0
+
+        for r in vrows:
+            gold_id = str(r["gold_sense_id"])
+            if r.get("error"):
+                per_question.append(
+                    {"question_id": r["question_id"], "variant": variant, "error": r["error"]}
+                )
+                continue
+
+            f1 = token_f1(r.get("parsed_answer") or "", gold_answers.get(r["question_id"], ""))
+            f1s.append(f1)
+            if f1 >= threshold:
+                f1_correct += 1
+
+            cited = r.get("parsed_sense_id")
+            is_correct = False
+            if variant in ("B", "C", "oracle"):
+                citation_total += 1
+                if cited is None:
+                    cite_none += 1
+                if cited is not None and str(cited) == gold_id:
+                    citation_correct += 1
+                    is_correct = True
+            else:
+                is_correct = f1 >= threshold
+
+            if variant == "B":
+                retrieved = [str(x["sense_id"]) for x in r.get("retrieved", [])]
+                any_hit = gold_id in retrieved
+                for k in retrieval_hits_by_k:
+                    if gold_id in retrieved[:k]:
+                        retrieval_hits_by_k[k] += 1
+                if not any_hit:
+                    retrieval_misses += 1
+                    retrieval_errors += 1
+                elif not is_correct:
+                    composition_errors += 1
+            elif variant == "C":
+                if not r.get("gold_present", False):
+                    coverage_misses += 1
+                    retrieval_errors += 1
+                elif not is_correct:
+                    composition_errors += 1
+            elif variant == "oracle":
+                if not r.get("gold_present", False):
+                    coverage_misses += 1
+                elif not is_correct:
+                    composition_errors += 1
+
+            per_question.append(
+                {
+                    "question_id": r["question_id"],
+                    "variant": variant,
+                    "cited_sense_id": cited,
+                    "citation_correct": (str(cited) == gold_id)
+                    if variant in ("B", "C", "oracle")
+                    else None,
+                    "answer_f1": round(f1, 3),
+                    "answer_correct": f1 >= threshold,
+                    "latency_ms": r.get("latency_ms"),
+                    "cache_hit": r.get("cache_hit", False),
+                }
+            )
+
+        entry: dict = {
+            "n": n,
+            "errors": errors,
+            "cache_hits": cache_hits,
+            "answer_f1_mean": round(sum(f1s) / len(f1s), 3) if f1s else None,
+            "answer_accuracy_f1": round(f1_correct / len(f1s), 3) if f1s else None,
+            "latency_p50_ms": percentile(latencies, 50),
+            "latency_p95_ms": percentile(latencies, 95),
+        }
+        if variant in ("B", "C", "oracle"):
+            entry["citation_accuracy"] = (
+                round(citation_correct / citation_total, 3) if citation_total else None
+            )
+            entry["cite_none"] = cite_none
+            entry["retrieval_errors"] = retrieval_errors
+            entry["composition_errors"] = composition_errors
+        if variant == "B":
+            entry["recall_at_k"] = {
+                str(k): round(hits / n, 3) if n else None
+                for k, hits in sorted(retrieval_hits_by_k.items())
+            }
+            entry["retrieval_misses"] = retrieval_misses
+        if variant in ("C", "oracle"):
+            entry["coverage_misses"] = coverage_misses
+        variants[variant] = entry
+
+    return {
+        "run_id": run_dir.name,
+        "n_questions": len({r["question_id"] for r in rows}),
+        "answer_f1_threshold": threshold,
+        "variants": variants,
+        "per_question": per_question,
+    }
