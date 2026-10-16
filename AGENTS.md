@@ -53,11 +53,16 @@ and methodology; the engineering lives here. See docs/DECISIONS.md for the decis
 | `make setup` | create/refresh the uv environment |
 | `make data` | download missing sources + verify MANIFEST hashes |
 | `make db` | start Postgres (docker compose) + restore DDDS snapshot subset |
-| `make graph` | build the Neo4j graph (Phase 1, not implemented yet) |
-| `make index` | build the text-RAG index (Phase 2, not implemented yet) |
-| `make run CONFIG=configs/x.yaml` | run one experiment |
+| `make core` | export the lexical core (senses + definitions + relations) from the database |
+| `make graph` | build the Neo4j graph (optional Phase 3; not implemented yet) |
+| `make index CONFIG=configs/skeleton.yaml` | build the exact vector index for variant B |
+| `make run CONFIG=configs/skeleton.yaml` | run an experiment (A/B/C/oracle) |
+| `make eval` | score the most recent run (`make eval RUN=<id>` for a specific one) |
 | `uv run python scripts/inspect_data.py` | source inspection report |
 | `make test` / `make lint` | pytest / ruff + mypy |
+
+Running the actual pilot experiments (API key, index, runs, reading results):
+see `docs/RUN_PILOT.md`.
 
 ## Where things live
 

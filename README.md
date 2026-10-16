@@ -31,7 +31,7 @@ and separate from generation.
 - [ ] Phase 2 - full evaluation round: statistics (McNemar + bootstrap CIs), plots,
       error-analysis report
 - [ ] Phase 3 - optional: Neo4j graph backend for variant C; LinkingTK-based
-      OSWN <-> DDDS re-link (see `docs/DECISIONS.md` D-012/D-013)
+      OSWN <-> DDDS re-link (spike validated, positive: see `docs/LINKINGTK_SPIKE.md`)
 
 ## Quickstart
 

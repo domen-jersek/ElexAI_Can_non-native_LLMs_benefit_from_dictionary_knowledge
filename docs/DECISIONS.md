@@ -205,3 +205,14 @@ export caps 24 per sense, prompts show up to 8). Hypernym/hyponym pairs are tiny
 (5,414 / 3,890) and kept when present. C therefore renders "Sopomenke" (when any)
 plus "Zveze"; B stays text-only (definition chunks) so the B/C contrast remains
 "text search vs structured lookups".
+
+## D-017 (2026-10-16) - LinkingTK spike: adopt WSA for the OSWN<->DDDS re-link
+
+A timeboxed spike (isolated venv, `StringSimilarityLinker` + `LabelOverlap` blocking,
+12 lemmas / 90 DDDS vs 61 OSWN senses) linked 84/90 DDDS senses; obvious senses
+mapped correctly (mesec 3/3, most-bridge 1/1); bad pairs are cleanly separable by
+score. Decision: if the mentor approves, run the full re-link (D-012 option 2) as a
+scoped work package on top of LinkingTK - lemma blocking + string baseline +
+optional embedding/LLM re-ranking - and emit a versioned, scored link table. The
+toolkit's `Evaluator` is used only for that re-link task; the A/B/C experiment keeps
+its own runner and scoring (D-014). Details: docs/LINKINGTK_SPIKE.md.
