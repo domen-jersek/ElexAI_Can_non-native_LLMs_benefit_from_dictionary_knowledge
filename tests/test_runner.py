@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from elexai.config import EmbedderConfig, ExperimentConfig, LlmConfig
@@ -94,3 +95,10 @@ def test_runner_dry_run_end_to_end(tmp_path, monkeypatch):
     assert metrics["variants"]["oracle"]["citation_accuracy"] == 1.0
     assert metrics["variants"]["B"]["recall_at_k"]["1"] == 0.5
     assert metrics["variants"]["B"]["recall_at_k"]["3"] == 1.0
+
+
+def test_runner_loads_dotenv(tmp_path, monkeypatch):
+    monkeypatch.delenv("ELEXAI_TEST_DOTENV_KEY", raising=False)
+    (tmp_path / ".env").write_text("ELEXAI_TEST_DOTENV_KEY=from-dotenv\n", encoding="utf-8")
+    runner_mod._load_env(tmp_path)
+    assert os.environ.get("ELEXAI_TEST_DOTENV_KEY") == "from-dotenv"

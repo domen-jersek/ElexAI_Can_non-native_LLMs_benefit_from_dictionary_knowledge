@@ -28,6 +28,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
+from dotenv import load_dotenv
 
 from elexai import __version__
 from elexai.config import ExperimentConfig, load_config
@@ -74,6 +75,11 @@ def _sha256_file(path: Path) -> str | None:
         while chunk := f.read(1 << 20):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _load_env(root: Path) -> None:
+    """Load the repository-root .env into the process environment (no override)."""
+    load_dotenv(root / ".env", override=False)
 
 
 def resolve_path(root: Path, path: Path) -> Path:
@@ -175,6 +181,7 @@ def run_experiment(
 ) -> Path:
     """Run one experiment; returns the run directory."""
     random.seed(cfg.seed)
+    _load_env(root)
 
     questions_path = resolve_path(root, cfg.questions_path)
     questions = load_questions(questions_path)
