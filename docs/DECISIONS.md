@@ -246,8 +246,8 @@ data/raw for provenance). Method: linkingtk StringSimilarityLinker
 only for the rest (46,751 links; 1,126 senses unmatched; overall 99.1%).
 Artifacts: data/processed/ddds/oswn_ddds_link_v2.tsv (+ .stats.json, .sample.tsv
 for eyeballing). Verified along the way: OSWN 1.0 has lemma coverage gaps (vlak,
-mi?ka absent); the approximate pass yields both morphological variants
-(?ebeljelik->?ebela) and junk (EM?O->nem?ki). Consequences: the graph loader
+miška absent); the approximate pass yields both morphological variants
+(čebeljelik->čebela) and junk (EMŠO->nemški). Consequences: the graph loader
 loads exact links by default and keeps approximate links behind
 --include-approx + --min-score. Sense-pairing quality is backbone-grade; a
 hand-checked gold sample or embedding/LLM re-ranking remains optional follow-up.
@@ -264,3 +264,18 @@ method}]->(:Synset), and (:Phrase)-[:HAS_PART]->(:Lexeme) from the new
 collocation-parts export (3.7M rows; only rows matching existing Phrase nodes
 apply). Recommended first v2 load: wipe the database, then re-run
 scripts/load_graph.py (idempotent).
+
+## D-021 (2026-10-17) - Hierarchy bridge corrected: OEWN 2023, not sloWNet
+
+D-020's sloWNet-offset mechanism did not survive first contact: sloWNet uses
+PWN 3.0 offsets while OSWN uses OEWN's renumbered ids (only 1,108 of 95,262
+align), and the first loaded hierarchy consisted of 49 coincidental edges
+(caught by reviewing the loaded counts). Correct bridge: the OEWN 2023 release
+XML (era-matched with OSWN 1.0), where 95,247 of 95,262 OSWN ids exist after
+the oewn->oswn prefix swap, with 293,864 SynsetRelation elements (~88k target
+synsets resolvable among OSWN synsets). The source is catalogued and
+MANIFEST-hashed (CC BY 4.0 + Princeton WordNet license; internal use, attribution
+in docs), the slownet.py mapping module was removed, and sloWNet stays in the
+catalog for reference only. Variant D scoring v2 additionally uses synset
+literals (weight 2) and direct-hypernym glosses (weight 1) as graph signals;
+contexts remain byte-identical to variant C.

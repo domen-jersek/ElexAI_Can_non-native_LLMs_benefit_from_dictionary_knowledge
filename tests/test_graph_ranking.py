@@ -12,6 +12,8 @@ def make(
     definition: str = "",
     synonyms: tuple[tuple[str, str], ...] = (),
     collocations: tuple[str, ...] = (),
+    synset_literals: tuple[str, ...] = (),
+    hypernym_glosses: tuple[str, ...] = (),
 ) -> GraphSense:
     return GraphSense(
         sense_id=sense_id,
@@ -22,6 +24,8 @@ def make(
         definition=f"{indicator} | {definition}" if definition else indicator,
         synonyms=list(synonyms),
         collocations=list(collocations),
+        synset_literals=list(synset_literals),
+        hypernym_glosses=list(hypernym_glosses),
     )
 
 
@@ -95,3 +99,19 @@ def test_context_degenerates_to_dictionary_order_without_matches():
 def test_candidate_cap():
     _, shown, _ = build_context("kruha", "kos", kos_candidates(), max_candidates=1)
     assert shown == ["10"]
+
+
+def test_synset_literals_signal():
+    piece = make("10", 1, "del celote", synset_literals=("frtalja", "kolač"))
+    bird = make("11", 2, "ptica")
+    ranked = rank_candidates("V pekarni so prodajali kolač.", "kos", [piece, bird])
+    assert ranked[0].sense.sense_id == "10"
+    assert "kolač" in ranked[0].matched_synset_literals
+
+
+def test_hypernym_gloss_signal():
+    piece = make("10", 1, "del celote")
+    bird = make("11", 2, "ptica", hypernym_glosses=("vretenčar in ptica pevka",))
+    ranked = rank_candidates("Na drevesu je sedela ptica pevka.", "kos", [piece, bird])
+    assert ranked[0].sense.sense_id == "11"
+    assert "ptica" in ranked[0].matched_hypernym_glosses

@@ -133,8 +133,11 @@ is the menu for choosing "one dictionary" with the mentor.
   Slovene definition (`status="machine_translated"`, 95,262 each). 18 Slovene
   definitions are empty strings.
 - **No inter-synset relations in the XML** (verified 2026-10-17: zero relation
-  elements despite the DTD) - the graph hierarchy comes from sloWNet 3.1 via PWN
-  offset mapping. Lemma coverage gaps exist (e.g. *vlak* is absent).
+  elements despite the DTD), and OSWN ids are OEWN ids with a swapped prefix
+  (verified: 95,247 of 95,262 present in the OEWN 2023 release) - so the graph
+  hierarchy comes from the OEWN 2023 XML. (A sloWNet/PWN-offset mapping was
+  tried and rejected: OEWN renumbered synsets, only 1,108/95,262 align.)
+  Lemma coverage gaps exist (e.g. *vlak* is absent).
 - Lemma attribute escaping: `--hy--`, `--am--`, `_` (space), ... implemented in
   `elexai/questions.py` (see `unescape_oswn_lemma` in the inspector).
 - POS distribution of synsets: nouns 63,719; verbs 12,406; participle adjectives
@@ -210,7 +213,7 @@ obligations - keep attribution in `data/MANIFEST.json` and here.
 - DDDS sense ids were rebased between the 2023 link list and v3.68 (see D-012);
   always pin the DDDS snapshot version when joining external id lists.
 - The re-link's approximate pass mixes useful morphological variants with junk
-  (e.g. EM?O -> nem?ki); the graph loader therefore defaults to exact links
+  (e.g. EMŠO -> nemški); the graph loader therefore defaults to exact links
   (D-019/D-020).
 - The Docker Postgres container needs `shm_size: 2gb` and heavy analytic queries
   should disable per-gather parallelism (see D-011).

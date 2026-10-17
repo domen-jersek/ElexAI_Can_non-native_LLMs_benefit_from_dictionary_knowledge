@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "created": "2026-10-15T16:27:22.240208+00:00",
-  "updated": "2026-10-15T16:27:22.240208+00:00",
+  "updated": "2026-10-17T13:09:06.262971+00:00",
   "sources": {
     "ddds_dump": {
       "title": "Digital Dictionary Database of Slovene (DDDS) - PostgreSQL backup v3.68",
@@ -536,6 +536,25 @@
         }
       ],
       "total_size": 24873221176
+    },
+    "oewn": {
+      "title": "Open English WordNet 2023 (auxiliary: synset relations for the graph hierarchy)",
+      "authors": "Open English WordNet Team (based on Princeton WordNet)",
+      "issued": "2023-10-31",
+      "license": "CC BY 4.0 (plus the Princeton WordNet license)",
+      "handle": null,
+      "download_url": "https://github.com/globalwordnet/english-wordnet/releases/download/2023-edition/english-wordnet-2023.xml.gz",
+      "notes": "Used for the WordNet hierarchy in the knowledge graph: OSWN synset ids are OEWN ids with a swapped prefix (verified 95,247/95,262). The .gz archive stays in data/raw/_downloads/ and is not hash-tracked.",
+      "subdir": "oewn",
+      "missing": false,
+      "files": [
+        {
+          "path": "english-wordnet-2023.xml",
+          "size": 103597951,
+          "sha256": "f144895a94cc76372507bf68ca0078949ca58c9f983d129665d0f68d3958aab1"
+        }
+      ],
+      "total_size": 103597951
     },
     "oswn": {
       "title": "Open Slovene WordNet OSWN 1.0",

@@ -65,12 +65,13 @@ uv run python scripts/load_graph.py      # reads NEO4J_* from .env; ~5-10 minute
   wipe the graph in Neo4j Browser first (`MATCH (n) DETACH DELETE n`), then run
   the loader; it is idempotent (MERGE everywhere), so future re-runs are safe.
 - The loader now also loads: OSWN Synset nodes (glosses, literals), the WordNet
-  hierarchy (from sloWNet, mapped by PWN offset), sense->synset links
-  (exact-lemma by default; `--include-approx` for the fuzzy ones) and
-  phrase->component-word edges.
+  hierarchy (from the OEWN 2023 release - OSWN ids are OEWN ids, verified 99.98%),
+  sense->synset links (exact-lemma by default; `--include-approx` for the fuzzy
+  ones) and phrase->component-word edges.
 - Counts to expect in its final report: senses 131056, synsets 95262,
   IN_SYNSET ~83179 (exact default), COLLOCATES_WITH ~986k, HAS_PART in the
-  millions, plus per-type synset relation counts.
+  millions, and synset relation edges in the tens of thousands (per-type
+  counts are printed; HYPERNYM should clearly dominate).
 - `--quick` loads only the first 2000 senses (no synsets/parts) for a smoke test.
 
 ## 3. Score and read the report

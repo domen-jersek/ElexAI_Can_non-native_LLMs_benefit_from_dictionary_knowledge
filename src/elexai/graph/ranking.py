@@ -48,6 +48,8 @@ class GraphSense:
     lu_type: str | None = None
     synonyms: list[tuple[str, str]] = field(default_factory=list)  # (id, lemma)
     collocations: list[str] = field(default_factory=list)  # collocation forms
+    synset_literals: list[str] = field(default_factory=list)  # words of linked synsets
+    hypernym_glosses: list[str] = field(default_factory=list)  # glosses of hypernyms
 
 
 @dataclass
@@ -57,6 +59,8 @@ class RankedSense:
     matched_definition: list[str] = field(default_factory=list)
     matched_synonyms: list[str] = field(default_factory=list)
     matched_collocations: list[str] = field(default_factory=list)
+    matched_synset_literals: list[str] = field(default_factory=list)
+    matched_hypernym_glosses: list[str] = field(default_factory=list)
 
 
 def _tokens(text: str) -> list[str]:
@@ -71,6 +75,8 @@ def rank_candidates(
     weight_definition: float = 1.0,
     weight_collocation: float = 2.0,
     weight_synonym: float = 2.0,
+    weight_synset_literal: float = 2.0,
+    weight_hypernym_gloss: float = 1.0,
 ) -> list[RankedSense]:
     target = normalize_text(target_lemma)
     sentence_tokens = {t for t in _tokens(sentence) if t != target}
@@ -85,13 +91,23 @@ def rank_candidates(
         collocation_tokens = {
             t for t in _tokens(" ".join(sense.collocations)) if t != target
         }
+        synset_tokens = {
+            t for literal in sense.synset_literals for t in _tokens(literal) if t != target
+        }
+        hypernym_tokens = {
+            t for gloss in sense.hypernym_glosses for t in _tokens(gloss) if t != target
+        }
         matched_def = sorted(sentence_tokens & definition_tokens)
         matched_syn = sorted(sentence_tokens & synonym_tokens)
         matched_coll = sorted(sentence_tokens & collocation_tokens)
+        matched_synset = sorted(sentence_tokens & synset_tokens)
+        matched_hypernym = sorted(sentence_tokens & hypernym_tokens)
         score = (
             weight_definition * len(matched_def)
             + weight_synonym * len(matched_syn)
             + weight_collocation * len(matched_coll)
+            + weight_synset_literal * len(matched_synset)
+            + weight_hypernym_gloss * len(matched_hypernym)
         )
         ranked.append(
             RankedSense(
@@ -100,6 +116,8 @@ def rank_candidates(
                 matched_definition=matched_def,
                 matched_synonyms=matched_syn,
                 matched_collocations=matched_coll,
+                matched_synset_literals=matched_synset,
+                matched_hypernym_glosses=matched_hypernym,
             )
         )
     ranked.sort(
@@ -138,6 +156,8 @@ def build_context(
     weight_definition: float = 1.0,
     weight_collocation: float = 2.0,
     weight_synonym: float = 2.0,
+    weight_synset_literal: float = 2.0,
+    weight_hypernym_gloss: float = 1.0,
 ) -> tuple[str, list[str], list[dict]]:
     """Return (context text, shown sense ids, score log for all candidates)."""
     ranked = rank_candidates(
@@ -147,6 +167,8 @@ def build_context(
         weight_definition=weight_definition,
         weight_collocation=weight_collocation,
         weight_synonym=weight_synonym,
+        weight_synset_literal=weight_synset_literal,
+        weight_hypernym_gloss=weight_hypernym_gloss,
     )
     shown = ranked[:max_candidates]
     if shown:
@@ -169,6 +191,8 @@ def build_context(
             "matched_collocations": r.matched_collocations[:5],
             "matched_definition": r.matched_definition[:5],
             "matched_synonyms": r.matched_synonyms[:5],
+            "matched_synset_literals": r.matched_synset_literals[:5],
+            "matched_hypernym_glosses": r.matched_hypernym_glosses[:5],
         }
         for r in ranked
     ]

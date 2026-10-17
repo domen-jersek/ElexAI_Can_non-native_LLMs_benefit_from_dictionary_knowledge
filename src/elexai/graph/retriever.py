@@ -33,6 +33,15 @@ WHERE l.lemma = $lemma
 RETURN s.id AS sense_id, collect(DISTINCT p.form) AS forms
 """
 
+_SYNSET_Q = """
+MATCH (l:Lexeme)-[:HAS_SENSE]->(s:Sense)-[:IN_SYNSET]->(y:Synset)
+WHERE l.lemma = $lemma
+OPTIONAL MATCH (y)-[:HYPERNYM|INSTANCE_HYPERNYM]->(hy:Synset)
+RETURN s.id AS sense_id,
+       collect(DISTINCT y.literals) AS literals,
+       collect(DISTINCT hy.gloss_sl) AS hypernym_glosses
+"""
+
 _SYNONYMS_Q = """
 MATCH (l:Lexeme)-[:HAS_SENSE]->(s:Sense)-[:SYNONYM]->(o:Sense)
 WHERE l.lemma = $lemma
@@ -85,6 +94,22 @@ class GraphRetriever:
                     synonyms.setdefault(row["sense_id"], []).append(
                         (str(row["other_id"]), row["other_lemma"] or "")
                     )
+            synset_literals: dict[Any, list[str]] = {}
+            hypernym_glosses: dict[Any, list[str]] = {}
+            if self.cfg.use_synsets:
+                for row in session.run(_SYNSET_Q, lemma=lemma):
+                    synset_literals[row["sense_id"]] = sorted(
+                        {
+                            word.strip()
+                            for chunk in row["literals"]
+                            if chunk
+                            for word in chunk.split(",")
+                            if word.strip()
+                        }
+                    )
+                    hypernym_glosses[row["sense_id"]] = sorted(
+                        {g for g in row["hypernym_glosses"] if g}
+                    )
         out: list[GraphSense] = []
         for sid, row in sense_rows.items():
             out.append(
@@ -99,6 +124,8 @@ class GraphRetriever:
                     lu_type=row["lu_type"],
                     synonyms=sorted(set(synonyms.get(sid, []))),
                     collocations=sorted(set(collocations.get(sid, []))),
+                    synset_literals=synset_literals.get(sid, []),
+                    hypernym_glosses=hypernym_glosses.get(sid, []),
                 )
             )
         return out
@@ -115,6 +142,8 @@ class GraphRetriever:
             weight_definition=self.cfg.weight_definition,
             weight_collocation=self.cfg.weight_collocation,
             weight_synonym=self.cfg.weight_synonym,
+            weight_synset_literal=self.cfg.weight_synset_literal if self.cfg.use_synsets else 0.0,
+            weight_hypernym_gloss=self.cfg.weight_hypernym_gloss if self.cfg.use_synsets else 0.0,
         )
         return GraphContext(text=text, shown_sense_ids=shown_ids, scores=scores)
 

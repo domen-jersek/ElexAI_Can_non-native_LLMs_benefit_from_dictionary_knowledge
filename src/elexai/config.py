@@ -84,6 +84,9 @@ class GraphConfig(BaseModel):
     weight_definition: float = 1.0
     weight_collocation: float = 2.0
     weight_synonym: float = 2.0
+    use_synsets: bool = True  # add synset-literal + hypernym-gloss signals to ranking
+    weight_synset_literal: float = 2.0
+    weight_hypernym_gloss: float = 1.0
 
 
 class ExperimentConfig(BaseModel):

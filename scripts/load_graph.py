@@ -9,8 +9,8 @@ Inputs (all under data/...; missing optional pieces are skipped with a note):
   --include-approx adds approximate-label links above --min-score)
 - ``data/raw/.../open_slovene_wordnet.xml`` -> Synset nodes (glosses, literals)
   (OSWN ships no relations - verified; the hierarchy comes from:)
-- ``data/raw/slownet/slownet-2015-05-07.xml`` -> synset relations mapped onto
-  OSWN ids by PWN offset (eng-30-XXXXXXXX-p -> oswn-XXXXXXXX-p)
+- ``data/raw/oewn/english-wordnet-2023.xml`` -> synset relations, mapped by id
+  equality (OSWN ids are OEWN ids with a swapped prefix; verified 99.98%)
 - ``data/processed/ddds/collocation_parts.tsv`` -> Phrase -[:HAS_PART]-> Lexeme
   (produced by scripts/export_collocation_parts.py)
 
@@ -38,7 +38,6 @@ from typing import Any
 from elexai.config import GraphConfig
 from elexai.env import REPO_ROOT, load_env
 from elexai.sources.oswn import literals_for, load_oswn
-from elexai.sources.slownet import load_slownet_relations
 
 LEXICAL_CORE = REPO_ROOT / "data" / "processed" / "ddds" / "lexical_core.jsonl"
 LINK_TSV = REPO_ROOT / "data" / "processed" / "ddds" / "oswn_ddds_link_v2.tsv"
@@ -51,7 +50,7 @@ OSWN_XML = (
     / "open_slovene_wordnet_1.0"
     / "open_slovene_wordnet.xml"
 )
-SLOWNET_XML = REPO_ROOT / "data" / "raw" / "slownet" / "slownet-2015-05-07.xml"
+OEWN_XML = REPO_ROOT / "data" / "raw" / "oewn" / "english-wordnet-2023.xml"
 
 CONSTRAINTS = [
     "CREATE CONSTRAINT sense_id_unique IF NOT EXISTS FOR (s:Sense) REQUIRE s.id IS UNIQUE",
@@ -261,18 +260,24 @@ def main() -> int:
         else:
             print(f"OSWN XML not found ({OSWN_XML}) - synset layer skipped", flush=True)
 
-        if SLOWNET_XML.exists():
-            print("parsing sloWNet relations (mapped by PWN offset) ...", flush=True)
-            for sid, rel_list in load_slownet_relations(SLOWNET_XML).items():
-                for rel_type, target in rel_list:
-                    synset_rel_rows[_rel_type(rel_type)].append({"a": sid, "b": target})
+        if OEWN_XML.exists():
+            print("parsing OEWN relations (ids match OSWN by prefix swap) ...", flush=True)
+            _, oewn_synsets = load_oswn(OEWN_XML)
+            for syn in oewn_synsets.values():
+                if not syn.synset_id.startswith("oewn-"):
+                    continue
+                sid = "oswn-" + syn.synset_id[len("oewn-") :]
+                for rel_type, target in syn.relations:
+                    if target.startswith("oewn-"):
+                        target_oswn = "oswn-" + target[len("oewn-") :]
+                        synset_rel_rows[_rel_type(rel_type)].append({"a": sid, "b": target_oswn})
             print(
                 f"  synset relation edges (before endpoint matching): "
                 f"{sum(len(v) for v in synset_rel_rows.values())}",
                 flush=True,
             )
         else:
-            print(f"sloWNet XML not found ({SLOWNET_XML}) - hierarchy edges skipped", flush=True)
+            print(f"OEWN XML not found ({OEWN_XML}) - hierarchy edges skipped", flush=True)
 
         if LINK_TSV.exists():
             print(f"reading {LINK_TSV.name} ...", flush=True)

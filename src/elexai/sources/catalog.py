@@ -117,5 +117,24 @@ SOURCES: dict[str, SourceSpec] = {
             md5="26dc6adcb250d827f94b287201ee9bf7",
             notes="Used for lemmatization of question sentences only (later phases).",
         ),
+        SourceSpec(
+            source_id="oewn",
+            title="Open English WordNet 2023 (auxiliary: synset relations for the graph hierarchy)",
+            authors="Open English WordNet Team (based on Princeton WordNet)",
+            issued="2023-10-31",
+            license="CC BY 4.0 (plus the Princeton WordNet license)",
+            subdir="oewn",
+            handle=None,
+            download_url=(
+                "https://github.com/globalwordnet/english-wordnet/releases/download/"
+                "2023-edition/english-wordnet-2023.xml.gz"
+            ),
+            download_name="english-wordnet-2023.xml.gz",
+            notes=(
+                "Used for the WordNet hierarchy in the knowledge graph: OSWN synset ids "
+                "are OEWN ids with a swapped prefix (verified 95,247/95,262). The .gz "
+                "archive stays in data/raw/_downloads/ and is not hash-tracked."
+            ),
+        ),
     ]
 }
