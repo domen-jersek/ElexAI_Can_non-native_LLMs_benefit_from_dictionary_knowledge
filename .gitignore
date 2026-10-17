@@ -26,3 +26,6 @@ build/
 Thumbs.db
 .idea/
 .vscode/
+
+# Personal (Slovene) notes - not for the shared repo
+/docs/PREGLED_PROJEKTA.md
