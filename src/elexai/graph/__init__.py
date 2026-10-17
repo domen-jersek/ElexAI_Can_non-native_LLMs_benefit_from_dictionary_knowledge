@@ -1,1 +1,1 @@
-"""Neo4j knowledge-graph layer (loader + queries). Implemented in Phase 1."""
+"""Neo4j knowledge-graph layer: variant D retrieval (neighborhood ranking)."""

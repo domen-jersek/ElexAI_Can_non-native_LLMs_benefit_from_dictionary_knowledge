@@ -1,14 +1,16 @@
-# The main pilot configuration: run this after building the index.
+# The main pilot configuration: run this after building the index AND loading
+# the graph (see docs/RUN_PILOT.md sections 1 and 2b).
 #
 # Everything is pinned: model id, embedder revision, retrieval depth, prompt
-# template version is recorded per run. See docs/RUN_PILOT.md for the workflow.
+# template version is recorded per run.
 name: skeleton
 description: >
   Sense-disambiguation pilot over DDDS (backup v3.68): variant A (base LLM),
   B (text RAG, BGE-M3 exact FAISS over sense chunks), C (structured lookup:
-  lemma senses + collocations/synonyms), oracle (gold + neighbours).
+  lemma senses + collocations/synonyms), D (graph RAG: same candidates, ranked
+  by sentence/neighborhood matching in Neo4j), oracle (gold + neighbours).
   Questions are DRAFT until a lexicographer verifies them.
-variants: [A, B, C, oracle]
+variants: [A, B, C, D, oracle]
 questions_path: data/questions/questions.jsonl
 llm:
   provider: openrouter
@@ -30,7 +32,19 @@ retrieval:
 structured:
   max_senses: 12
   synonyms_per_sense: 5
+  max_dependencies: 8
   oracle_max_candidates: 5
+graph:
+  # Neo4j (Neo4j Desktop default bolt://localhost:7687; credentials in .env)
+  uri_env: NEO4J_URI
+  user_env: NEO4J_USER
+  password_env: NEO4J_PASSWORD
+  max_candidates: 12          # same cap as structured.max_senses (fair C-vs-D comparison)
+  synonyms_shown: 5
+  collocations_shown: 8
+  weight_definition: 1.0
+  weight_collocation: 2.0
+  weight_synonym: 2.0
 eval:
   answer_f1_threshold: 0.6
 seed: 0

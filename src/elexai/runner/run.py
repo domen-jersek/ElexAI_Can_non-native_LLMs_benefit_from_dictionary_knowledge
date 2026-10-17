@@ -28,10 +28,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
-from dotenv import load_dotenv
 
 from elexai import __version__
 from elexai.config import ExperimentConfig, load_config
+from elexai.env import load_env
+from elexai.graph.retriever import GraphRetriever
 from elexai.llm.cache import ResponseCache
 from elexai.llm.client import LlmClient, LlmError, StubLlmClient
 from elexai.llm.prompts import TEMPLATE_VERSION, render
@@ -79,7 +80,7 @@ def _sha256_file(path: Path) -> str | None:
 
 def _load_env(root: Path) -> None:
     """Load the repository-root .env into the process environment (no override)."""
-    load_dotenv(root / ".env", override=False)
+    load_env(root)
 
 
 def resolve_path(root: Path, path: Path) -> Path:
@@ -132,6 +133,7 @@ def _context_for_variant(
     cfg: ExperimentConfig,
     structured: StructuredRetriever,
     vector: VectorRetriever | None,
+    graph: GraphRetriever | None,
     chunk_by_id: dict[str, SenseChunk],
 ) -> tuple[str | None, dict]:
     """Return (context text, record fields) for one variant."""
@@ -164,6 +166,21 @@ def _context_for_variant(
             "shown_sense_ids": sc.shown_sense_ids,
             "retrieved": [],
             "gold_present": sc.gold_present,
+        }
+    if variant == "D":
+        assert graph is not None
+        gc = graph.context_for(question.lemma, question.context_sentence)
+        gold_rank = next(
+            (i + 1 for i, s in enumerate(gc.scores) if s["sense_id"] == question.gold_sense_id),
+            None,
+        )
+        return gc.text, {
+            "context_kind": "graph",
+            "shown_sense_ids": gc.shown_sense_ids,
+            "retrieved": [],
+            "gold_present": question.gold_sense_id in gc.shown_sense_ids,
+            "graph_scores": gc.scores,
+            "gold_rank": gold_rank,
         }
     raise ValueError(f"unknown variant {variant!r}")
 
@@ -217,6 +234,18 @@ def run_experiment(
         if meta_path.exists():
             index_meta = json.loads(meta_path.read_text(encoding="utf-8"))
 
+    graph_retriever: GraphRetriever | None = None
+    if "D" in variants:
+        try:
+            graph_retriever = GraphRetriever.from_env(cfg.graph)
+        except Exception as exc:  # noqa: BLE001
+            raise SystemExit(
+                f"variant D needs the Neo4j graph to be running and loaded:\n  {exc}\n"
+                f"  1) start the database in Neo4j Desktop\n"
+                f"  2) load it once:  uv run python scripts/load_graph.py\n"
+                f"  3) check NEO4J_USER/NEO4J_PASSWORD (and optionally NEO4J_URI) in .env"
+            ) from exc
+
     if llm is None:
         if dry_run:
             llm = StubLlmClient(cfg.llm)
@@ -258,6 +287,7 @@ def run_experiment(
                     cfg=cfg,
                     structured=structured,
                     vector=vector,
+                    graph=graph_retriever,
                     chunk_by_id=chunk_by_id,
                 )
                 prompt = render(question, context)
@@ -316,6 +346,9 @@ def run_experiment(
                 if done % 10 == 0 or done == total_calls:
                     answers.flush()
                     print(f"  [{done}/{total_calls}] variants={variants}", flush=True)
+
+    if graph_retriever is not None:
+        graph_retriever.close()
 
     log_lines.append(f"done={done} errors={errors} cache_hits={cache_hits}")
     (run_dir / "logs.txt").write_text("\n".join(log_lines) + "\n", encoding="utf-8")

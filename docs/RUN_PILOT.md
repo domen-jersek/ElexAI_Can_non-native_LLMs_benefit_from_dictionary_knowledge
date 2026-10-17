@@ -37,9 +37,11 @@ make index CONFIG=configs/skeleton.yaml
 uv run python -m elexai.runner configs/skeleton.yaml
 ```
 
-- 22 questions x 4 variants = **88 LLM calls**; with the default model
+- 22 questions x 5 variants = **110 LLM calls**; with the default model
   (`openai/gpt-6-luna`, OpenRouter) this costs roughly **a few cents** and takes
-  a few minutes.
+  a few minutes. Variant D needs the graph loaded first (section 2b); the
+  A/B/C/oracle answers are served from the response cache if you ran them before
+  (free and identical).
 - Every request/response pair is cached in `.cache/llm/` (keyed by model + params +
   full prompt). Re-running is free and offline; delete the folder only if you change
   the prompt template on purpose.
@@ -52,6 +54,19 @@ uv run python -m elexai.runner configs/skeleton.yaml
 
 Quick taste before spending anything: `uv run python -m elexai.runner configs/skeleton.yaml --limit 3`
 (3 questions per variant) or `--dry-run` (stub model, no API key, plumbing check).
+
+## 2b. Variant D (graph RAG): one-time load
+
+```
+uv run python scripts/load_graph.py      # reads NEO4J_* from .env; ~5-10 minutes
+```
+
+- Start your Neo4j Desktop database first; the loader expects an empty database
+  and is safe to re-run (everything is MERGE-based).
+- Sanity check in Neo4j Browser: `MATCH (n:Sense) RETURN count(*)` -> 131056, and
+  `MATCH ()-[r:COLLOCATES_WITH]->() RETURN count(r)` -> several hundred thousand
+  (the loader prints all expected counts when it finishes).
+- `--quick` loads only the first 2000 senses if you want to smoke-test quickly.
 
 ## 3. Score and read the report
 

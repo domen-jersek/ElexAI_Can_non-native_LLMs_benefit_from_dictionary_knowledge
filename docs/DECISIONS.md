@@ -216,3 +216,23 @@ scoped work package on top of LinkingTK - lemma blocking + string baseline +
 optional embedding/LLM re-ranking - and emit a versioned, scored link table. The
 toolkit's `Evaluator` is used only for that re-link task; the A/B/C experiment keeps
 its own runner and scoring (D-014). Details: docs/LINKINGTK_SPIKE.md.
+
+## D-018 (2026-10-17) - Variant D (graph RAG): design and load scope
+
+Added as a fifth variant after the first evaluation round showed the two extremes
+(B = pure semantic search fails mostly at retrieval; C = exact lookup is at the
+oracle ceiling). Design: the SAME candidate universe as C (all loaded senses whose
+first-part lemma matches; same cap of 12) but candidates are RANKED by how well the
+sentence matches each sense's graph neighborhood - indicator+definition tokens
+(weight 1), synonym words (weight 2) and typical-collocation forms (weight 2), with
+the target lemma's own token excluded from scoring. Context rendering is
+byte-identical to C's blocks, so the only difference between C and D is the ORDER of
+candidates; the logged gold-rank is the graph's retrieval metric (analogue of
+recall@k for B). Graph shape: (:Lexeme)-[:HAS_SENSE]->(:Sense) with
+[:SYNONYM|ANTONYM|HYPERNYM|HYPONYM] between senses and
+(:Sense)-[:COLLOCATES_WITH]->(:Phrase). The loader (scripts/load_graph.py) is
+idempotent (MERGE) and runs against the user's Neo4j Desktop instance; the neo4j
+driver is a runtime dependency of variant D only. Load scope: the 131k
+definition-bearing senses; relations where both endpoints are loaded; ~986k
+collocation edges. The WordNet synset layer is deliberately deferred to the
+LinkingTK re-link (D-017) rather than a provisional lemma-level bridge.

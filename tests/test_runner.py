@@ -102,3 +102,56 @@ def test_runner_loads_dotenv(tmp_path, monkeypatch):
     (tmp_path / ".env").write_text("ELEXAI_TEST_DOTENV_KEY=from-dotenv\n", encoding="utf-8")
     runner_mod._load_env(tmp_path)
     assert os.environ.get("ELEXAI_TEST_DOTENV_KEY") == "from-dotenv"
+
+
+def test_runner_variant_d_with_fake_graph(tmp_path, monkeypatch):
+    from elexai.graph.retriever import GraphContext
+
+    class FakeGraph:
+        def __init__(self):
+            self.closed = False
+
+        def context_for(self, lemma, sentence):
+            return GraphContext(
+                text="ID: 10\nBeseda: kos\nDefinicija: del celote",
+                shown_sense_ids=["10"],
+                scores=[
+                    {"sense_id": "10", "score": 2.0},
+                    {"sense_id": "11", "score": 0.0},
+                ],
+            )
+
+        def close(self):
+            self.closed = True
+
+    fake = FakeGraph()
+    monkeypatch.setattr(runner_mod, "SENSES_EXPORT", tmp_path / "no_senses.jsonl")
+    monkeypatch.setattr(runner_mod, "LEXICAL_CORE", tmp_path / "no_core.jsonl")
+    monkeypatch.setattr(runner_mod.GraphRetriever, "from_env", lambda cfg: fake)
+
+    qdir = tmp_path / "data" / "questions"
+    qdir.mkdir(parents=True)
+    (qdir / "questions.jsonl").write_text(
+        json.dumps(_question("q1", "kos", "10", "del celote"), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    cfg = ExperimentConfig(
+        name="graph-run",
+        questions_path=Path("data/questions/questions.jsonl"),
+        llm=LlmConfig(),
+        embedder=EmbedderConfig(name="fake", hf_id="fake", revision="x"),
+        runs_dir=Path("runs"),
+    )
+    run_dir = runner_mod.run_experiment(
+        cfg, root=tmp_path, dry_run=True, variants=["D"], chunks=CHUNKS
+    )
+    rows = [
+        json.loads(line)
+        for line in (run_dir / "answers.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["context_kind"] == "graph"
+    assert row["gold_present"] is True
+    assert row["gold_rank"] == 1
+    assert fake.closed is True

@@ -116,6 +116,7 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
         coverage_misses = 0
         composition_errors = 0
         retrieval_errors = 0
+        gold_ranks: list[int] = []
 
         for r in vrows:
             gold_id = str(r["gold_sense_id"])
@@ -132,7 +133,7 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
 
             cited = r.get("parsed_sense_id")
             is_correct = False
-            if variant in ("B", "C", "oracle"):
+            if variant in ("B", "C", "D", "oracle"):
                 citation_total += 1
                 if cited is None:
                     cite_none += 1
@@ -153,7 +154,9 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
                     retrieval_errors += 1
                 elif not is_correct:
                     composition_errors += 1
-            elif variant == "C":
+            elif variant in ("C", "D"):
+                if variant == "D" and r.get("gold_rank") is not None:
+                    gold_ranks.append(int(r["gold_rank"]))
                 if not r.get("gold_present", False):
                     coverage_misses += 1
                     retrieval_errors += 1
@@ -171,7 +174,7 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
                     "variant": variant,
                     "cited_sense_id": cited,
                     "citation_correct": (str(cited) == gold_id)
-                    if variant in ("B", "C", "oracle")
+                    if variant in ("B", "C", "D", "oracle")
                     else None,
                     "answer_f1": round(f1, 3),
                     "answer_correct": f1 >= threshold,
@@ -189,7 +192,7 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
             "latency_p50_ms": percentile(latencies, 50),
             "latency_p95_ms": percentile(latencies, 95),
         }
-        if variant in ("B", "C", "oracle"):
+        if variant in ("B", "C", "D", "oracle"):
             entry["citation_accuracy"] = (
                 round(citation_correct / citation_total, 3) if citation_total else None
             )
@@ -202,8 +205,11 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
                 for k, hits in sorted(retrieval_hits_by_k.items())
             }
             entry["retrieval_misses"] = retrieval_misses
-        if variant in ("C", "oracle"):
+        if variant in ("C", "D", "oracle"):
             entry["coverage_misses"] = coverage_misses
+        if variant == "D" and gold_ranks:
+            entry["gold_rank_mean"] = round(sum(gold_ranks) / len(gold_ranks), 2)
+            entry["gold_rank_p50"] = percentile([float(x) for x in gold_ranks], 50)
         variants[variant] = entry
 
     return {

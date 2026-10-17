@@ -37,3 +37,9 @@ def test_unknown_variant_rejected():
 def test_missing_name_rejected():
     with pytest.raises(ValidationError):
         ExperimentConfig.model_validate({})
+
+
+def test_graph_variant_allowed():
+    cfg = ExperimentConfig(name="x", variants=["D"])
+    assert cfg.variants == ["D"]
+    assert cfg.graph.max_candidates == 12

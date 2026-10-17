@@ -13,6 +13,7 @@ differs:
 | A | none - base LLM |
 | B | text RAG: exact vector search (FAISS) over one chunk per dictionary sense |
 | C | structured data: exact lemma lookup - all senses with definitions, synonyms and typical collocations ("Zveze") |
+| D | graph RAG: the same candidates, ranked by how well the sentence matches each sense's neighborhood in Neo4j |
 | oracle | gold sense + neighbouring senses of the same lemma - isolates answer-composition errors |
 
 **Metrics.** Answer correctness, source-citation correctness (does the cited sense id

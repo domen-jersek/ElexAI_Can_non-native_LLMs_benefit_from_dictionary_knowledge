@@ -11,6 +11,7 @@ _VARIANT_LABEL = {
     "A": "A - base LLM (no context)",
     "B": "B - text RAG (semantic search over sense chunks)",
     "C": "C - structured data (lemma lookup + synonyms)",
+    "D": "D - graph RAG (neighborhood-ranked candidates)",
     "oracle": "oracle - gold sense + neighbours (composition check)",
 }
 
@@ -82,6 +83,9 @@ def build_report(run_dir: Path, metrics: dict) -> str:
             notes = f"recall@k -> {recall}"
         elif variant == "C":
             notes = "coverage = is the gold sense among the shown candidates"
+        elif variant == "D":
+            rank = metrics["variants"][variant].get("gold_rank_mean")
+            notes = f"graph-ranked; mean gold rank = {rank}"
         elif variant == "oracle":
             notes = "gold sense always shown; all errors are composition"
         lines.append(

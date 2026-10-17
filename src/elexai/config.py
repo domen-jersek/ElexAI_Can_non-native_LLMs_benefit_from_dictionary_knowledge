@@ -15,7 +15,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, Field
 
-Variant = Literal["A", "B", "C", "oracle"]
+Variant = Literal["A", "B", "C", "D", "oracle"]
 
 
 class LlmConfig(BaseModel):
@@ -71,6 +71,21 @@ class EvalConfig(BaseModel):
     answer_f1_threshold: float = 0.6  # for variants without an id to cite
 
 
+class GraphConfig(BaseModel):
+    """Neo4j backend for variant D (neighborhood-ranked structured data)."""
+
+    uri_env: str = "NEO4J_URI"
+    user_env: str = "NEO4J_USER"
+    password_env: str = "NEO4J_PASSWORD"
+    default_uri: str = "bolt://localhost:7687"
+    max_candidates: int = 12  # same cap as the structured variant (C)
+    synonyms_shown: int = 5
+    collocations_shown: int = 8
+    weight_definition: float = 1.0
+    weight_collocation: float = 2.0
+    weight_synonym: float = 2.0
+
+
 class ExperimentConfig(BaseModel):
     """One experiment run: variants, questions, models and retrieval setup."""
 
@@ -83,6 +98,7 @@ class ExperimentConfig(BaseModel):
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     structured: StructuredConfig = Field(default_factory=StructuredConfig)
     eval: EvalConfig = Field(default_factory=EvalConfig)
+    graph: GraphConfig = Field(default_factory=GraphConfig)
     index_dir: Path = Path("data/processed/index")
     cache_dir: Path = Path(".cache/llm")
     runs_dir: Path = Path("runs")
