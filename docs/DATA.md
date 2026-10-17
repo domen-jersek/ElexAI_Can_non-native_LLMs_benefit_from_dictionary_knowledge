@@ -132,6 +132,9 @@ is the menu for choosing "one dictionary" with the mentor.
 - Definitions: every synset has **both** an English original (`status="manual"`) and a
   Slovene definition (`status="machine_translated"`, 95,262 each). 18 Slovene
   definitions are empty strings.
+- **No inter-synset relations in the XML** (verified 2026-10-17: zero relation
+  elements despite the DTD) - the graph hierarchy comes from sloWNet 3.1 via PWN
+  offset mapping. Lemma coverage gaps exist (e.g. *vlak* is absent).
 - Lemma attribute escaping: `--hy--`, `--am--`, `_` (space), ... implemented in
   `elexai/questions.py` (see `unescape_oswn_lemma` in the inspector).
 - POS distribution of synsets: nouns 63,719; verbs 12,406; participle adjectives
@@ -153,6 +156,11 @@ is the menu for choosing "one dictionary" with the mentor.
   plausible.
 - Intended purpose (currently blocked by the staleness above): resolve DDDS senses
   to OSWN synsets for graph variant C.
+- **Re-link v2 executed (2026-10-17, internal)**: two-pass LinkingTK alignment
+  (exact lemma first: 83,179 links / 63.5% of senses; approximate fallback:
+  46,751; overall 99.1% matched) - see docs/DECISIONS.md D-019. Artifact:
+  `data/processed/ddds/oswn_ddds_link_v2.tsv` (+stats +sample). The published
+  2023 list stays untouched in data/raw for provenance.
 
 ## 4. sloWNet 3.1 (reference only)
 
@@ -201,6 +209,9 @@ obligations - keep attribution in `data/MANIFEST.json` and here.
   (one row per lexical-unit part); use `DISTINCT ON (sense id)` or aggregate.
 - DDDS sense ids were rebased between the 2023 link list and v3.68 (see D-012);
   always pin the DDDS snapshot version when joining external id lists.
+- The re-link's approximate pass mixes useful morphological variants with junk
+  (e.g. EM?O -> nem?ki); the graph loader therefore defaults to exact links
+  (D-019/D-020).
 - The Docker Postgres container needs `shm_size: 2gb` and heavy analytic queries
   should disable per-gather parallelism (see D-011).
 - Some common lemmas have **no lexeme rows** in v3.68 at all (verified: *miška*,

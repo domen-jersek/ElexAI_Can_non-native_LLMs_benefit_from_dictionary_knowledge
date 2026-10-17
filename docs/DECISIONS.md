@@ -236,3 +236,31 @@ driver is a runtime dependency of variant D only. Load scope: the 131k
 definition-bearing senses; relations where both endpoints are loaded; ~986k
 collocation edges. The WordNet synset layer is deliberately deferred to the
 LinkingTK re-link (D-017) rather than a provisional lemma-level bridge.
+
+## D-019 (2026-10-17) - OSWN<->DDDS re-link v2 executed (two-pass LinkingTK)
+
+Internal replacement for the stale 2023 link list (the published table stays in
+data/raw for provenance). Method: linkingtk StringSimilarityLinker
+(description vs description, word_overlap) with exact-lemma blocking first
+(83,179 links, 63.5% of senses) and approximate LabelOverlap(max_matches=5)
+only for the rest (46,751 links; 1,126 senses unmatched; overall 99.1%).
+Artifacts: data/processed/ddds/oswn_ddds_link_v2.tsv (+ .stats.json, .sample.tsv
+for eyeballing). Verified along the way: OSWN 1.0 has lemma coverage gaps (vlak,
+mi?ka absent); the approximate pass yields both morphological variants
+(?ebeljelik->?ebela) and junk (EM?O->nem?ki). Consequences: the graph loader
+loads exact links by default and keeps approximate links behind
+--include-approx + --min-score. Sense-pairing quality is backbone-grade; a
+hand-checked gold sample or embedding/LLM re-ranking remains optional follow-up.
+
+## D-020 (2026-10-17) - Graph v2: synset layer (OSWN + sloWNet hierarchy) and phrase components
+
+Finding: OSWN 1.0 ships synsets, glosses, literals and ILI ids but NO
+inter-synset relations (verified: zero relation elements in the XML). The
+hierarchy therefore comes from sloWNet 3.1: its ILRs (235,399 elements) are
+mapped 1:1 onto OSWN synset ids by the shared PWN offset format
+(eng-30-XXXXXXXX-p -> oswn-XXXXXXXX-p). Loader v2 adds: (:Synset) nodes (ili,
+glosses, literals), synset relation edges, (:Sense)-[:IN_SYNSET {score,
+method}]->(:Synset), and (:Phrase)-[:HAS_PART]->(:Lexeme) from the new
+collocation-parts export (3.7M rows; only rows matching existing Phrase nodes
+apply). Recommended first v2 load: wipe the database, then re-run
+scripts/load_graph.py (idempotent).

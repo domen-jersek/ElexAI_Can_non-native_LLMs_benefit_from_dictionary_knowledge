@@ -5,7 +5,8 @@ Inputs (all under data/...; missing optional pieces are skipped with a note):
 - ``data/processed/ddds/lexical_core.jsonl`` -> Lexeme/Sense nodes, HAS_SENSE,
   COLLOCATES_WITH, sense relations (synonym/antonym/hypernym/hyponym)
 - ``data/processed/ddds/oswn_ddds_link_v2.tsv`` -> IN_SYNSET edges
-  (produced by scripts/relink_oswn.py)
+  (produced by scripts/relink_oswn.py; exact-lemma links load by default,
+  --include-approx adds approximate-label links above --min-score)
 - ``data/raw/.../open_slovene_wordnet.xml`` -> Synset nodes (glosses, literals)
   (OSWN ships no relations - verified; the hierarchy comes from:)
 - ``data/raw/slownet/slownet-2015-05-07.xml`` -> synset relations mapped onto
@@ -21,7 +22,7 @@ bolt://localhost:7687 for Neo4j Desktop).
 Usage:
     uv run python scripts/load_graph.py                  # full load
     uv run python scripts/load_graph.py --quick          # 2000 senses only (smoke)
-    uv run python scripts/load_graph.py --min-score 2    # stricter IN_SYNSET threshold
+    uv run python scripts/load_graph.py --include-approx  # also approximate links
 """
 
 from __future__ import annotations
@@ -190,10 +191,15 @@ def main() -> int:
     ap.add_argument("--quick", action="store_true", help="2000 senses, skip synsets/parts")
     ap.add_argument("--batch", type=int, default=2000)
     ap.add_argument(
+        "--include-approx",
+        action="store_true",
+        help="also load approximate-label links (default: exact-lemma links only)",
+    )
+    ap.add_argument(
         "--min-score",
         type=float,
         default=1.0,
-        help="min description score for APPROXIMATE links (exact-label links always load)",
+        help="min description score for approximate links when --include-approx is used",
     )
     args = ap.parse_args()
 
@@ -232,6 +238,7 @@ def main() -> int:
     link_rows: list[dict] = []
     part_rows: list[dict] = []
     skipped_low_score = 0
+    skipped_approx = 0
 
     if args.quick:
         print("QUICK MODE: skipping synsets, re-link edges and phrase components", flush=True)
@@ -277,9 +284,13 @@ def main() -> int:
                         continue
                     score = float(parts[4])
                     method = parts[5]
-                    if score < args.min_score and method != "exact":
-                        skipped_low_score += 1
-                        continue
+                    if method != "exact":
+                        if not args.include_approx:
+                            skipped_approx += 1
+                            continue
+                        if score < args.min_score:
+                            skipped_low_score += 1
+                            continue
                     link_rows.append(
                         {
                             "sense_id": int(parts[0]),
@@ -289,7 +300,8 @@ def main() -> int:
                         }
                     )
             print(
-                f"  IN_SYNSET edges: {len(link_rows)} (skipped score<{args.min_score}: {skipped_low_score})",
+                f"  IN_SYNSET edges: {len(link_rows)} "
+                f"(approximate skipped: {skipped_approx}; below min-score: {skipped_low_score})",
                 flush=True,
             )
         else:
