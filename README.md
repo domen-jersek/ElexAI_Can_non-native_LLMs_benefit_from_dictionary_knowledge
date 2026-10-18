@@ -17,27 +17,33 @@ differs:
 | oracle | gold sense + neighbouring senses of the same lemma - isolates answer-composition errors |
 
 **Metrics.** Answer correctness, source-citation correctness (does the cited sense id
-match the gold id), latency (p50/p95), retrieval recall@k, and a separate
-retrieval/coverage-error vs answer-composition-error analysis. Scoring is LLM-free
-and separate from generation.
+match the gold id), latency (p50/p95), retrieval recall@k and the gold candidate's
+rank (C/D), and a separate retrieval/coverage-error vs answer-composition-error
+analysis. Scoring is LLM-free and separate from generation.
 
 ## Status
 
 - [x] **Phase 0** - scaffold, source registration (`data/MANIFEST.json`), DDDS snapshot
       restored + inspected (`docs/DATA.md`)
 - [x] **Phase 0.5** - walking skeleton: variants A/B/C/oracle runnable end-to-end,
-      response cache, run manifests, LLM-free scoring + reports; 22 DRAFT questions.
+      response cache, run manifests, LLM-free scoring + reports.
       How to run it yourself: **`docs/RUN_PILOT.md`**
-- [ ] Phase 1 - lexicographer verifies/replaces the draft questions; expand the set
+- [x] **Graph backend** (optional Phase 3) - variant D (graph RAG): Neo4j loader,
+      OSWN <-> DDDS re-link via LinkingTK (two-pass, positive: see
+      `docs/LINKINGTK_SPIKE.md`), OEWN 2023 hierarchy, neighborhood-ranked candidates.
+      The question set grew to 30 DRAFT items and the first full round
+      (30 questions x 5 variants) ran end-to-end.
+- [ ] Phase 1 - lexicographer verifies/replaces the 30 draft questions; expand the set
 - [ ] Phase 2 - full evaluation round: statistics (McNemar + bootstrap CIs), plots,
       error-analysis report
-- [ ] Phase 3 - optional: Neo4j graph backend for variant C; LinkingTK-based
-      OSWN <-> DDDS re-link (spike validated, positive: see `docs/LINKINGTK_SPIKE.md`)
+- [ ] Proposed (pending mentor approval) - a second question type on lexical relations
+      (synonyms/hypernyms), where graph retrieval has no text-RAG equivalent
 
 ## Quickstart
 
 Prerequisites: [uv](https://docs.astral.sh/uv/), Docker Desktop, GNU make
-(on Windows: `winget install GnuWin32.Make`).
+(on Windows: `winget install GnuWin32.Make`); variant D also needs Neo4j Desktop
+or another local Neo4j instance.
 
 ```bash
 cp .env.example .env          # fill in credentials / API key
@@ -53,9 +59,10 @@ make lint                     # ruff + mypy
 ### Run the pilot experiments
 
 ```bash
-# in .env: OPENROUTER_API_KEY=...
+# in .env: OPENROUTER_API_KEY=... (+ NEO4J_* and a running Neo4j for variant D)
 make index CONFIG=configs/skeleton.yaml            # one-time; BGE-M3, ~1-2 h on CPU
-uv run python -m elexai.runner configs/skeleton.yaml   # 22 questions x 4 variants
+uv run python scripts/load_graph.py                # one-time; variant D (Neo4j Desktop)
+uv run python -m elexai.runner configs/skeleton.yaml   # 30 questions x 5 variants
 make eval                                          # metrics + runs/<id>/report.md
 ```
 
@@ -70,9 +77,9 @@ data/
   raw/              raw sources (gitignored; DDDS dump + CLARIN.SI data)
   processed/        derived exports: ddds/lexical_core.jsonl, index/ (gitignored)
   questions/        the question set with gold answers + review status (committed)
-docs/               DATA.md, DECISIONS.md, REPRODUCE.md, RUN_PILOT.md
+docs/               DATA.md, DECISIONS.md, LINKINGTK_SPIKE.md, REPRODUCE.md, RUN_PILOT.md
 runs/               per-run artifacts: answers.jsonl, manifest.json, metrics, report
-scripts/            thin CLIs (download, register, db_restore, export, index, evaluate)
+scripts/            thin CLIs (download, register, db_restore, export, index, load_graph, evaluate)
 src/elexai/         sources/ graph/ retrieval/ llm/ eval/ runner/
 tests/              unit tests
 ```
@@ -84,6 +91,7 @@ tests/              unit tests
 | `docs/RUN_PILOT.md` | how to run the experiments yourself (API key, index, runs, how to read results) |
 | `docs/DATA.md` | what each source contains (verified numbers), quality caveats, licensing |
 | `docs/DECISIONS.md` | decision log with rationale - read this first |
+| `docs/LINKINGTK_SPIKE.md` | OSWN <-> DDDS re-linking with LinkingTK: method, two-pass results, artifacts |
 | `docs/REPRODUCE.md` | exact steps from a clean clone to reproduced results |
 | `AGENTS.md` | working rules for contributors (human or AI) |
 
