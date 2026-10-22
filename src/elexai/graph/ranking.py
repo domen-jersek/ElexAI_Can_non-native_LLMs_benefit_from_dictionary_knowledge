@@ -197,3 +197,75 @@ def build_context(
         for r in ranked
     ]
     return text, shown_ids, scores
+
+
+def build_relation_context(
+    sentence: str,
+    target_lemma: str,
+    candidates: list[GraphSense],
+    evidence: dict[str, str],
+    *,
+    max_candidates: int = 12,
+    synonyms_shown: int = 5,
+    collocations_shown: int = 8,
+    gold_sense_id: str | None = None,
+    weight_definition: float = 1.0,
+    weight_collocation: float = 2.0,
+    weight_synonym: float = 2.0,
+    weight_synset_literal: float = 2.0,
+    weight_hypernym_gloss: float = 1.0,
+) -> tuple[str, list[str], list[dict]]:
+    """Relation-question context: the same blocks as variant C, plus an explicit
+    graph evidence line ("Graf: ...") for every shown candidate that stands in
+    the asked relation to the given sense.
+
+    With ``gold_sense_id`` set, only the gold sense + nearest siblings of the
+    same lemma are shown (oracle semantics); otherwise candidates are ranked
+    like in variant D.
+    """
+    if gold_sense_id is not None:
+        ordered = sorted(
+            candidates,
+            key=lambda s: (
+                s.position if s.position is not None else 10**9,
+                int(s.sense_id),
+            ),
+        )
+        gold = [s for s in ordered if s.sense_id == gold_sense_id]
+        others = [s for s in ordered if s.sense_id != gold_sense_id]
+        selected = (gold + others)[:max_candidates]
+        selected.sort(
+            key=lambda s: (
+                s.position if s.position is not None else 10**9,
+                int(s.sense_id),
+            )
+        )
+        ranked = [RankedSense(sense=s, score=0.0) for s in selected]
+    else:
+        ranked = rank_candidates(
+            sentence,
+            target_lemma,
+            candidates,
+            weight_definition=weight_definition,
+            weight_collocation=weight_collocation,
+            weight_synonym=weight_synonym,
+            weight_synset_literal=weight_synset_literal,
+            weight_hypernym_gloss=weight_hypernym_gloss,
+        )[:max_candidates]
+
+    blocks: list[str] = []
+    for r in ranked:
+        block = to_chunk(r).block(
+            with_relations=True,
+            max_synonyms=synonyms_shown,
+            max_dependencies=collocations_shown,
+        )
+        evidence_line = evidence.get(r.sense.sense_id)
+        if evidence_line:
+            block = f"{block}\n{evidence_line}"
+        blocks.append(block)
+
+    text = "\n\n".join(blocks) if blocks else "(Ni na voljo.)"
+    shown_ids = [r.sense.sense_id for r in ranked]
+    scores = [{"sense_id": r.sense.sense_id, "score": r.score} for r in ranked]
+    return text, shown_ids, scores

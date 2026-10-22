@@ -37,9 +37,10 @@ def build_report(run_dir: Path, metrics: dict) -> str:
     lines.append(f"- Questions: {metrics['n_questions']} (file: `{cfg['questions_path']}`)")
     if manifest:
         dirty = "dirty" if manifest.get("git_dirty") else "clean"
+        templates = manifest.get("template_versions") or [manifest.get("template_version")]
         lines.append(
             f"- Git: `{str(manifest.get('git_commit'))[:12]}` ({dirty}); "
-            f"template `{manifest.get('template_version')}`; dry_run={manifest.get('dry_run')}"
+            f"templates `{', '.join(str(t) for t in templates)}`; dry_run={manifest.get('dry_run')}"
         )
     lines.append("")
     lines.append("## Summary per variant")
@@ -70,6 +71,41 @@ def build_report(run_dir: Path, metrics: dict) -> str:
             f"| {latency} | {m.get('cache_hits', 0)} |"
         )
     lines.append("")
+
+    trick_ids = metrics.get("trick_question_ids") or []
+    if trick_ids:
+        lines.append(f"Flagged **trick** questions: {', '.join(trick_ids)} (see caveats).")
+        lines.append("")
+        lines.append("| variant | citation acc. (all) | citation acc. (excl. trick) |")
+        lines.append("|---|---|---|")
+        for variant, m in metrics["variants"].items():
+            lines.append(
+                f"| {_VARIANT_LABEL.get(variant, variant)} | {fmt(m.get('citation_accuracy'))} "
+                f"| {fmt(m.get('citation_accuracy_excl_trick'))} |"
+            )
+        lines.append("")
+
+    question_types = metrics.get("question_types") or []
+    if len(question_types) > 1:
+        lines.append("## By question type")
+        lines.append("")
+        lines.append(
+            "| variant | type | n | citation acc. | retrieval/coverage errors "
+            "| composition errors |"
+        )
+        lines.append("|---|---|---|---|---|---|")
+        for variant, m in metrics["variants"].items():
+            for qt in question_types:
+                t = (m.get("by_question_type") or {}).get(qt)
+                if not t:
+                    continue
+                lines.append(
+                    f"| {_VARIANT_LABEL.get(variant, variant)} | {qt} | {t['n']} "
+                    f"| {fmt(t.get('citation_accuracy'))} | {t.get('retrieval_errors', 0)} "
+                    f"| {t.get('composition_errors', 0)} |"
+                )
+        lines.append("")
+
     lines.append("## Error decomposition")
     lines.append("")
     lines.append(
@@ -88,6 +124,12 @@ def build_report(run_dir: Path, metrics: dict) -> str:
             notes = f"graph-ranked; mean gold rank = {rank}"
         elif variant == "oracle":
             notes = "gold sense always shown; all errors are composition"
+        rel = m.get("relation_evidence")
+        if rel and variant in ("D", "oracle"):
+            notes += f"; relation gold evidence {rel['gold_evidence']}/{rel['n']}"
+        vis = m.get("relation_visible_in_synonyms")
+        if vis and variant == "C":
+            notes += f"; relation visible in synonyms {vis['visible']}/{vis['n']}"
         lines.append(
             f"| {_VARIANT_LABEL.get(variant, variant)} | "
             f"{m.get('retrieval_errors', 0)} | {m.get('composition_errors', 0)} | {notes} |"
@@ -122,6 +164,17 @@ def build_report(run_dir: Path, metrics: dict) -> str:
         "- Latencies include network/provider variance; cached calls are excluded from "
         "percentiles (see the cache column)."
     )
+    if "relation" in (metrics.get("question_types") or []):
+        lines.append(
+            "- Relation questions (`question_type=relation`): gold pairs come from WordNet "
+            "synsets / DDDS sense relations (exact links); variants D/oracle show an explicit "
+            "graph evidence line for the linked candidate; drafts until verified."
+        )
+    if trick_ids:
+        lines.append(
+            f"- Questions {', '.join(trick_ids)} are flagged `trick` (compound-sense intrusion / "
+            "near-duplicate senses); the headline numbers above exclude them."
+        )
     lines.append(
         "- Plots (latency/error breakdowns, dark theme) are planned for the evaluation "
         "phase; this report is intentionally plain Markdown."

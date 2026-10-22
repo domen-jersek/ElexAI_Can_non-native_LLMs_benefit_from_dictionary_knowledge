@@ -10,11 +10,11 @@ that the rest of the pipeline runs without a database.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from elexai.config import GraphConfig
-from elexai.graph.ranking import GraphSense, build_context
+from elexai.graph.ranking import GraphSense, build_context, build_relation_context
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from neo4j import Driver
@@ -49,12 +49,67 @@ OPTIONAL MATCH (ol:Lexeme)-[:HAS_SENSE]->(o)
 RETURN s.id AS sense_id, o.id AS other_id, ol.lemma AS other_lemma
 """
 
+# --- relation-question evidence (D-022): which candidate senses of $lemma
+# stand in the asked relation to the given sense $rid? -----------------------
+
+_REL_EVIDENCE_LABELS = {
+    "synonym": "sopomenka",
+    "antonym": "protipomenka",
+    "hypernym": "nadpomenka",
+    "hyponym": "podpomenka",
+}
+
+_REL_EVIDENCE_Q: dict[str, list[str]] = {
+    "synonym": [
+        # dictionary-native sense-to-sense synonym edge (either direction)
+        """
+MATCH (r:Sense {id: $rid})-[:SYNONYM]-(c:Sense)<-[:HAS_SENSE]-(l:Lexeme {lemma: $lemma})
+RETURN DISTINCT c.id AS sense_id
+""",
+        # WordNet: both senses linked to the same synset
+        """
+MATCH (r:Sense {id: $rid})-[:IN_SYNSET]->(y:Synset)<-[:IN_SYNSET]-(c:Sense)
+      <-[:HAS_SENSE]-(l:Lexeme {lemma: $lemma})
+RETURN DISTINCT c.id AS sense_id
+""",
+    ],
+    "antonym": [
+        """
+MATCH (r:Sense {id: $rid})-[:ANTONYM]-(c:Sense)<-[:HAS_SENSE]-(l:Lexeme {lemma: $lemma})
+RETURN DISTINCT c.id AS sense_id
+""",
+        """
+MATCH (r:Sense {id: $rid})-[:IN_SYNSET]->(y1:Synset)-[:ANTONYM]-(y2:Synset)
+      <-[:IN_SYNSET]-(c:Sense)<-[:HAS_SENSE]-(l:Lexeme {lemma: $lemma})
+RETURN DISTINCT c.id AS sense_id
+""",
+    ],
+    "hypernym": [
+        # the candidate's synset is a direct hypernym of the given sense's synset
+        """
+MATCH (r:Sense {id: $rid})-[:IN_SYNSET]->(y1:Synset)
+      -[:HYPERNYM|INSTANCE_HYPERNYM]->(y2:Synset)<-[:IN_SYNSET]-(c:Sense)
+      <-[:HAS_SENSE]-(l:Lexeme {lemma: $lemma})
+RETURN DISTINCT c.id AS sense_id
+""",
+    ],
+    "hyponym": [
+        """
+MATCH (r:Sense {id: $rid})-[:IN_SYNSET]->(y1:Synset)
+      <-[:HYPERNYM|INSTANCE_HYPERNYM]-(y2:Synset)<-[:IN_SYNSET]-(c:Sense)
+      <-[:HAS_SENSE]-(l:Lexeme {lemma: $lemma})
+RETURN DISTINCT c.id AS sense_id
+""",
+    ],
+}
+
 
 @dataclass
 class GraphContext:
     text: str
     shown_sense_ids: list[str]
     scores: list[dict]  # full ranking: [{sense_id, score, matched_*...}]
+    evidence_sense_ids: list[str] = field(default_factory=list)
 
 
 class GraphRetriever:
@@ -146,6 +201,66 @@ class GraphRetriever:
             weight_hypernym_gloss=self.cfg.weight_hypernym_gloss if self.cfg.use_synsets else 0.0,
         )
         return GraphContext(text=text, shown_sense_ids=shown_ids, scores=scores)
+
+    def _relation_evidence(self, lemma: str, related_sense_id: int, relation: str) -> set[str]:
+        """Sense ids of ``lemma`` that stand in ``relation`` to the given sense."""
+        queries = _REL_EVIDENCE_Q.get(relation)
+        if queries is None:
+            raise ValueError(f"unknown relation {relation!r}")
+        found: set[str] = set()
+        with self.driver.session() as session:
+            for query in queries:
+                for row in session.run(query, rid=related_sense_id, lemma=lemma):
+                    found.add(str(row["sense_id"]))
+        return found
+
+    def relation_context_for(
+        self,
+        lemma: str,
+        related_sense_id: str,
+        relation: str,
+        *,
+        sentence: str,
+        gold_sense_id: str | None = None,
+        max_candidates: int | None = None,
+    ) -> GraphContext:
+        """Context for a relation question: candidate blocks of ``lemma`` plus an
+        explicit graph evidence line for candidates linked to ``related_sense_id``.
+
+        With ``gold_sense_id`` set the gold sense + nearest siblings are shown
+        (oracle semantics, same evidence); otherwise candidates are ranked by
+        ``sentence`` (the question text) like in variant D.
+        """
+        label = _REL_EVIDENCE_LABELS.get(relation)
+        if label is None:
+            raise ValueError(f"unknown relation {relation!r}")
+        evidence_ids = self._relation_evidence(lemma, int(related_sense_id), relation)
+        evidence = {
+            sid: f"Graf: ta pomen je {label} pomena {related_sense_id}."
+            for sid in evidence_ids
+        }
+        candidates = self._fetch(lemma)
+        text, shown_ids, scores = build_relation_context(
+            sentence,
+            lemma,
+            candidates,
+            evidence,
+            max_candidates=max_candidates or self.cfg.max_candidates,
+            synonyms_shown=self.cfg.synonyms_shown,
+            collocations_shown=self.cfg.collocations_shown,
+            gold_sense_id=gold_sense_id,
+            weight_definition=self.cfg.weight_definition,
+            weight_collocation=self.cfg.weight_collocation,
+            weight_synonym=self.cfg.weight_synonym,
+            weight_synset_literal=self.cfg.weight_synset_literal if self.cfg.use_synsets else 0.0,
+            weight_hypernym_gloss=self.cfg.weight_hypernym_gloss if self.cfg.use_synsets else 0.0,
+        )
+        return GraphContext(
+            text=text,
+            shown_sense_ids=shown_ids,
+            scores=scores,
+            evidence_sense_ids=sorted(evidence_ids),
+        )
 
     def close(self) -> None:
         self.driver.close()

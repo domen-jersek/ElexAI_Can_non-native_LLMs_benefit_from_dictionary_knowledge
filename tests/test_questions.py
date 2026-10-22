@@ -62,3 +62,55 @@ def test_senses_crosscheck():
 def test_extra_field_rejected():
     with pytest.raises(ValidationError):
         Question.model_validate({**BASE, "typo_field": 1})
+
+
+RELATION_BASE = {
+    **BASE,
+    "id": "r-001",
+    "question": "Kateri pomen besede »miška« je sopomenka pomena 999?",
+    "question_type": "relation",
+    "relation": "synonym",
+    "related_sense_id": "999",
+    "context_sentence": "",
+}
+
+
+def rq(**overrides) -> Question:
+    return Question.model_validate({**RELATION_BASE, **overrides})
+
+
+def test_valid_relation_question():
+    assert validate_questions([rq()]) == []
+    assert validate_questions([rq()], senses={"12345": "miška", "999": "miš"}) == []
+
+
+def test_relation_requires_related_sense_id():
+    problems = validate_questions([rq(related_sense_id="")])
+    assert any("without related_sense_id" in p for p in problems)
+
+
+def test_relation_requires_relation_type():
+    problems = validate_questions([rq(relation=None)])
+    assert any("without relation type" in p for p in problems)
+
+
+def test_relation_ids_must_differ():
+    problems = validate_questions([rq(related_sense_id="12345")])
+    assert any("equals gold_sense_id" in p for p in problems)
+
+
+def test_relation_related_sense_must_be_numeric_and_present():
+    problems = validate_questions([rq(related_sense_id="oswn-1-n")])
+    assert any("not a numeric DDDS sense id" in p for p in problems)
+    problems = validate_questions([rq()], senses={"12345": "miška"})
+    assert any("related_sense_id 999 not present" in p for p in problems)
+
+
+def test_relation_target_word_must_be_in_question():
+    problems = validate_questions([rq(question="Kateri pomen je to?")])
+    assert any("not found in question" in p for p in problems)
+
+
+def test_sense_question_requires_context_sentence():
+    problems = validate_questions([q(context_sentence="")])
+    assert any("without context_sentence" in p for p in problems)

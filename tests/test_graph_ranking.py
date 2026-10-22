@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from elexai.graph.ranking import GraphSense, build_context, rank_candidates
+from elexai.graph.ranking import (
+    GraphSense,
+    build_context,
+    build_relation_context,
+    rank_candidates,
+)
 
 
 def make(
@@ -115,3 +120,29 @@ def test_hypernym_gloss_signal():
     ranked = rank_candidates("Na drevesu je sedela ptica pevka.", "kos", [piece, bird])
     assert ranked[0].sense.sense_id == "11"
     assert "ptica" in ranked[0].matched_hypernym_glosses
+
+
+def test_build_relation_context_adds_evidence_lines():
+    text, shown, scores = build_relation_context(
+        "vprašanje o odnosu",
+        "kos",
+        kos_candidates(),
+        {"10": "Graf: ta pomen je sopomenka pomena 999."},
+    )
+    assert shown == ["10", "11"]
+    assert text.count("Graf:") == 1
+    assert "Graf: ta pomen je sopomenka pomena 999." in text
+    assert "ID: 10" in text and "ID: 11" in text
+
+
+def test_build_relation_context_oracle_selects_gold_first():
+    text, shown, _ = build_relation_context(
+        "x", "kos", kos_candidates(), {}, gold_sense_id="11", max_candidates=1
+    )
+    assert shown == ["11"]
+    assert "Graf:" not in text
+
+
+def test_build_relation_context_cap_keeps_ranking_order():
+    _, shown, _ = build_relation_context("x", "kos", kos_candidates(), {}, max_candidates=1)
+    assert shown == ["10"]

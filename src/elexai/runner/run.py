@@ -35,7 +35,7 @@ from elexai.env import load_env
 from elexai.graph.retriever import GraphRetriever
 from elexai.llm.cache import ResponseCache
 from elexai.llm.client import LlmClient, LlmError, StubLlmClient
-from elexai.llm.prompts import TEMPLATE_VERSION, render
+from elexai.llm.prompts import render, template_version
 from elexai.questions import Question, load_questions, load_senses_export, validate_questions
 from elexai.retrieval.chunks import SenseChunk, load_chunks
 from elexai.retrieval.structured import StructuredRetriever
@@ -96,6 +96,7 @@ def build_manifest(
     dry_run: bool,
     n_chunks: int,
     index_meta: dict | None,
+    template_versions: list[str],
 ) -> dict:
     uv_lock = root / "uv.lock"
     data_manifest = root / "data" / "MANIFEST.json"
@@ -103,7 +104,7 @@ def build_manifest(
     return {
         "run_schema": 1,
         "elexai_version": __version__,
-        "template_version": TEMPLATE_VERSION,
+        "template_versions": template_versions,
         "started_at": datetime.now(UTC).isoformat(),
         "dry_run": dry_run,
         "limit": limit,
@@ -137,12 +138,15 @@ def _context_for_variant(
     chunk_by_id: dict[str, SenseChunk],
 ) -> tuple[str | None, dict]:
     """Return (context text, record fields) for one variant."""
+    is_relation = question.question_type == "relation"
     if variant == "A":
         return None, {"context_kind": "none", "shown_sense_ids": [], "retrieved": []}
     if variant == "B":
         assert vector is not None
         top_k = max([cfg.retrieval.k, *cfg.retrieval.sweep_k])
-        results = vector.search(question.context_sentence, top_k)
+        # sense questions search with the sentence; relation questions with the task text
+        query = question.question if is_relation else question.context_sentence
+        results = vector.search(query, top_k)
         shown = [sid for sid, _ in results[: cfg.retrieval.k]]
         text = "\n\n".join(chunk_by_id[sid].block() for sid in shown)
         return text, {
@@ -153,13 +157,41 @@ def _context_for_variant(
     if variant == "C":
         sc = structured.context_for(question.lemma)
         gold_present = question.gold_sense_id in sc.shown_sense_ids
-        return sc.text, {
+        fields = {
             "context_kind": "structured",
             "shown_sense_ids": sc.shown_sense_ids,
             "retrieved": [],
             "gold_present": gold_present,
         }
+        if is_relation:
+            gold_chunk = chunk_by_id.get(question.gold_sense_id)
+            related_chunk = chunk_by_id.get(question.related_sense_id)
+            related_lemma = related_chunk.lemma.lower() if related_chunk else ""
+            fields["related_visible_in_synonyms"] = bool(
+                gold_chunk
+                and related_lemma
+                and any(lemma.lower() == related_lemma for _, lemma in gold_chunk.synonyms)
+            )
+        return sc.text, fields
     if variant == "oracle":
+        if is_relation:
+            assert graph is not None
+            gc = graph.relation_context_for(
+                question.lemma,
+                question.related_sense_id,
+                question.relation or "",
+                sentence=question.question,
+                gold_sense_id=question.gold_sense_id,
+                max_candidates=cfg.structured.oracle_max_candidates,
+            )
+            return gc.text, {
+                "context_kind": "oracle_relation",
+                "shown_sense_ids": gc.shown_sense_ids,
+                "retrieved": [],
+                "gold_present": question.gold_sense_id in gc.shown_sense_ids,
+                "evidence_sense_ids": gc.evidence_sense_ids,
+                "gold_evidence": question.gold_sense_id in gc.evidence_sense_ids,
+            }
         sc = structured.oracle_context(question.lemma, question.gold_sense_id)
         return sc.text, {
             "context_kind": "oracle",
@@ -169,6 +201,27 @@ def _context_for_variant(
         }
     if variant == "D":
         assert graph is not None
+        if is_relation:
+            gc = graph.relation_context_for(
+                question.lemma,
+                question.related_sense_id,
+                question.relation or "",
+                sentence=question.question,
+            )
+            gold_rank = next(
+                (i + 1 for i, s in enumerate(gc.scores) if s["sense_id"] == question.gold_sense_id),
+                None,
+            )
+            return gc.text, {
+                "context_kind": "graph_relation",
+                "shown_sense_ids": gc.shown_sense_ids,
+                "retrieved": [],
+                "gold_present": question.gold_sense_id in gc.shown_sense_ids,
+                "graph_scores": gc.scores,
+                "gold_rank": gold_rank,
+                "evidence_sense_ids": gc.evidence_sense_ids,
+                "gold_evidence": question.gold_sense_id in gc.evidence_sense_ids,
+            }
         gc = graph.context_for(question.lemma, question.context_sentence)
         gold_rank = next(
             (i + 1 for i, s in enumerate(gc.scores) if s["sense_id"] == question.gold_sense_id),
@@ -210,6 +263,7 @@ def run_experiment(
     variants = variants or list(cfg.variants)
     if limit is not None:
         questions = questions[:limit]
+    template_versions = sorted({template_version(q) for q in questions})
     if chunks is None:
         chunks = load_chunks(LEXICAL_CORE)
     chunk_by_id = {c.sense_id: c for c in chunks}
@@ -235,12 +289,16 @@ def run_experiment(
             index_meta = json.loads(meta_path.read_text(encoding="utf-8"))
 
     graph_retriever: GraphRetriever | None = None
-    if "D" in variants:
+    needs_graph = "D" in variants or (
+        "oracle" in variants and any(q.question_type == "relation" for q in questions)
+    )
+    if needs_graph:
         try:
             graph_retriever = GraphRetriever.from_env(cfg.graph)
         except Exception as exc:  # noqa: BLE001
             raise SystemExit(
-                f"variant D needs the Neo4j graph to be running and loaded:\n  {exc}\n"
+                f"the Neo4j graph is needed (variant D, or oracle on relation "
+                f"questions) and cannot be reached:\n  {exc}\n"
                 f"  1) start the database in Neo4j Desktop\n"
                 f"  2) load it once:  uv run python scripts/load_graph.py\n"
                 f"  3) check NEO4J_USER/NEO4J_PASSWORD (and optionally NEO4J_URI) in .env"
@@ -268,6 +326,7 @@ def run_experiment(
         dry_run=dry_run,
         n_chunks=len(chunks),
         index_meta=index_meta,
+        template_versions=template_versions,
     )
     (run_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8"
@@ -300,10 +359,13 @@ def run_experiment(
                     "target_word": question.target_word,
                     "gold_sense_id": question.gold_sense_id,
                     "prompt": prompt,
-                    "template_version": TEMPLATE_VERSION,
+                    "template_version": template_version(question),
                     "timestamp": datetime.now(UTC).isoformat(),
                     **fields,
                 }
+                if question.question_type == "relation":
+                    record["relation"] = question.relation
+                    record["related_sense_id"] = question.related_sense_id
                 try:
                     result = llm.complete(prompt)
                     cited, answer = parse_output(result.text)

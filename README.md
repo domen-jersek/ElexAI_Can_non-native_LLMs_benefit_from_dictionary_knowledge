@@ -31,8 +31,8 @@ analysis. Scoring is LLM-free and separate from generation.
 - [x] **Graph backend** (optional Phase 3) - variant D (graph RAG): Neo4j loader,
       OSWN <-> DDDS re-link via LinkingTK (two-pass, positive: see
       `docs/LINKINGTK_SPIKE.md`), OEWN 2023 hierarchy, neighborhood-ranked candidates.
-      The question set grew to 30 DRAFT items and the first full round
-      (30 questions x 5 variants) ran end-to-end.
+      The question set grew to 36 DRAFT items (30 sense-disambiguation + 6 relation);
+      the first full round (30 questions x 5 variants) ran end-to-end.
 - [ ] Phase 1 - lexicographer verifies/replaces the 30 draft questions; expand the set
 - [ ] Phase 2 - full evaluation round: statistics (McNemar + bootstrap CIs), plots,
       error-analysis report
@@ -62,7 +62,7 @@ make lint                     # ruff + mypy
 # in .env: OPENROUTER_API_KEY=... (+ NEO4J_* and a running Neo4j for variant D)
 make index CONFIG=configs/skeleton.yaml            # one-time; BGE-M3, ~1-2 h on CPU
 uv run python scripts/load_graph.py                # one-time; variant D (Neo4j Desktop)
-uv run python -m elexai.runner configs/skeleton.yaml   # 30 questions x 5 variants
+uv run python -m elexai.runner configs/skeleton.yaml   # 36 questions x 5 variants
 make eval                                          # metrics + runs/<id>/report.md
 ```
 

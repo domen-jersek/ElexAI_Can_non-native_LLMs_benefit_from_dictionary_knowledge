@@ -122,3 +122,94 @@ def test_evaluate_run(tmp_path):
     a = metrics["variants"]["A"]
     assert a["answer_accuracy_f1"] == 0.5
     assert a["latency_p50_ms"] == 10.0
+
+
+def _write_relation_run(tmp_path: Path) -> Path:
+    run_dir = tmp_path / "runs" / "relrun"
+    run_dir.mkdir(parents=True)
+    questions = [
+        {
+            "id": "s1", "question": "?", "target_word": "kos", "lemma": "kos", "pos": "noun",
+            "context_sentence": "kos", "gold_sense_id": "10", "gold_answer": "del celote",
+            "source_dictionary_version": "DDDS backup v3.68",
+        },
+        {
+            "id": "t1", "question": "?", "target_word": "list", "lemma": "list", "pos": "noun",
+            "context_sentence": "list", "gold_sense_id": "20", "gold_answer": "del rastline",
+            "source_dictionary_version": "DDDS backup v3.68", "flags": ["trick"],
+        },
+        {
+            "id": "r1", "question": "?", "target_word": "mišičnjak", "lemma": "mišičnjak",
+            "pos": "noun", "question_type": "relation", "relation": "synonym",
+            "related_sense_id": "99", "context_sentence": "", "gold_sense_id": "30",
+            "gold_answer": "moški z mišicami",
+            "source_dictionary_version": "DDDS backup v3.68",
+        },
+    ]
+    qpath = tmp_path / "data" / "questions"
+    qpath.mkdir(parents=True)
+    (qpath / "questions.jsonl").write_text(
+        "\n".join(json.dumps(q, ensure_ascii=False) for q in questions) + "\n", encoding="utf-8"
+    )
+    (run_dir / "config.resolved.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "questions_path": "data/questions/questions.jsonl",
+                "retrieval": {"k": 1, "sweep_k": [1, 3]},
+                "eval": {"answer_f1_threshold": 0.6},
+            },
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    def row(qid, variant, **kw):
+        base = {
+            "run_id": "relrun", "variant": variant, "question_id": qid,
+            "question_type": "sense_disambiguation", "lemma": qid, "target_word": qid,
+            "gold_sense_id": {"s1": "10", "t1": "20", "r1": "30"}[qid],
+            "prompt": "p", "template_version": "sd-v1", "timestamp": "t",
+            "output_raw": None, "parsed_sense_id": None, "parsed_answer": None,
+            "latency_ms": 10.0, "cache_hit": False, "model": "m", "error": None,
+            "context_kind": "x", "shown_sense_ids": [], "retrieved": [],
+        }
+        base.update(kw)
+        return base
+
+    rows = [
+        row("s1", "C", parsed_sense_id="10", parsed_answer="del celote", gold_present=True),
+        row("t1", "C", parsed_sense_id="99", parsed_answer="napačno", gold_present=True),
+        row(
+            "r1", "C", parsed_sense_id="30", parsed_answer="moški z mišicami",
+            gold_present=True, related_visible_in_synonyms=True,
+            question_type="relation", related_sense_id="99", relation="synonym",
+        ),
+        row(
+            "r1", "D", parsed_sense_id="30", parsed_answer="moški z mišicami",
+            gold_present=True, gold_rank=1, evidence_sense_ids=["30"], gold_evidence=True,
+            question_type="relation", related_sense_id="99", relation="synonym",
+        ),
+    ]
+    (run_dir / "answers.jsonl").write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8"
+    )
+    return run_dir
+
+
+def test_relation_and_trick_segmentation(tmp_path):
+    run_dir = _write_relation_run(tmp_path)
+    metrics = evaluate_run(run_dir, tmp_path)
+
+    assert metrics["question_types"] == ["relation", "sense_disambiguation"]
+    assert metrics["trick_question_ids"] == ["t1"]
+
+    c = metrics["variants"]["C"]
+    assert c["citation_accuracy"] == round(2 / 3, 3)
+    assert c["citation_accuracy_excl_trick"] == 1.0
+    assert c["by_question_type"]["relation"]["citation_accuracy"] == 1.0
+    assert c["by_question_type"]["sense_disambiguation"]["citation_accuracy"] == 0.5
+    assert c["relation_visible_in_synonyms"] == {"n": 1, "visible": 1}
+
+    d = metrics["variants"]["D"]
+    assert d["relation_evidence"] == {"n": 1, "gold_evidence": 1}
+    assert d["by_question_type"]["relation"]["gold_rank_mean"] == 1.0

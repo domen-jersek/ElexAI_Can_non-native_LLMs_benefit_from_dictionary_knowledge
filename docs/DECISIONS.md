@@ -279,3 +279,38 @@ in docs), the slownet.py mapping module was removed, and sloWNet stays in the
 catalog for reference only. Variant D scoring v2 additionally uses synset
 literals (weight 2) and direct-hypernym glosses (weight 1) as graph signals;
 contexts remain byte-identical to variant C.
+
+## D-022 (2026-10-22) - Second question type: lexical-relation questions (variant-D benefit)
+
+Added six hand-picked relation questions (q-031..q-036) to the same question set:
+three synonym (one control whose relation is also visible in the DDDS synonym
+lists), two hypernym (from the OEWN 2023 synset hierarchy) and one antonym (DDDS
+sense-level relation). Motivation: the sense-disambiguation round showed that the
+graph adds nothing when all candidates are already visible (C = D); relation
+questions test the capability only the graph layer has - explicit links between
+senses - and give variant D a question class where it can beat text search and
+lemma lookup.
+
+Design decisions:
+
+- Pair selection is MANUAL, not mined: the link layers are noisy (senses of one
+  lemma often collapse onto the same synset), so each pair was checked for
+  "exactly one candidate sense of the target lemma stands in the relation"
+  before being written down; all six are drafts until a lexicographer verifies.
+- The question text (identical across variants) names the related sense (id +
+  definition); the model must cite the target lemma's sense id.
+- Variant contexts: A none; B searches with the question text (not a sentence);
+  C unchanged (all senses of the target lemma); D/oracle append one explicit
+  evidence line ("Graf: ta pomen je <relation> pomena <id>.") to every shown
+  candidate that stands in the relation, computed from sense-level DDDS edges
+  and/or the synset layer (exact links only). Oracle keeps its "ceiling"
+  semantics: gold candidate guaranteed + the same evidence as D.
+- New prompt template `rel-v1`; `sd-v1` is byte-identical to before, so the
+  existing cached answers stay valid. Template versions are now recorded per
+  answer and as a list in the run manifest.
+- Two known-problematic items (q-005 compound-sense intrusion, q-016
+  near-duplicate senses) are flagged `flags: ["trick"]`; the report shows
+  headline numbers with and without them.
+- Scoring/report are segmented by question type; availability flags are logged
+  (C: relation visible in the synonym lists; D/oracle: graph evidence present
+  for the gold candidate).

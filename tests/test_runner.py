@@ -84,7 +84,7 @@ def test_runner_dry_run_end_to_end(tmp_path, monkeypatch):
 
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["dry_run"] is True
-    assert manifest["template_version"] == "sd-v1"
+    assert manifest["template_versions"] == ["sd-v1"]
     assert manifest["variants"] == ["A", "B", "C", "oracle"]
 
     metrics = evaluate_run(run_dir, tmp_path)
@@ -155,3 +155,99 @@ def test_runner_variant_d_with_fake_graph(tmp_path, monkeypatch):
     assert row["gold_present"] is True
     assert row["gold_rank"] == 1
     assert fake.closed is True
+
+
+def test_runner_relation_question_dry_run(tmp_path, monkeypatch):
+    from elexai.graph.retriever import GraphContext
+
+    class RecordingVector:
+        def __init__(self):
+            self.queries: list[str] = []
+
+        def search(self, query: str, top_k: int):
+            self.queries.append(query)
+            return [("10", 0.9), ("11", 0.8)][:top_k]
+
+    class FakeGraph:
+        def relation_context_for(
+            self,
+            lemma,
+            related_sense_id,
+            relation,
+            *,
+            sentence,
+            gold_sense_id=None,
+            max_candidates=None,
+        ):
+            return GraphContext(
+                text=(
+                    "ID: 10\nBeseda: kos\nDefinicija: del celote\n"
+                    "Graf: ta pomen je sopomenka pomena 999."
+                ),
+                shown_sense_ids=["10", "11"],
+                scores=[
+                    {"sense_id": "10", "score": 1.0},
+                    {"sense_id": "11", "score": 0.0},
+                ],
+                evidence_sense_ids=["10"],
+            )
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(runner_mod, "SENSES_EXPORT", tmp_path / "no_senses.jsonl")
+    monkeypatch.setattr(runner_mod, "LEXICAL_CORE", tmp_path / "no_core.jsonl")
+    monkeypatch.setattr(runner_mod.GraphRetriever, "from_env", lambda cfg: FakeGraph())
+
+    qdir = tmp_path / "data" / "questions"
+    qdir.mkdir(parents=True)
+    relation_q = {
+        "id": "r1",
+        "question": "Kateri pomen besede »kos« je sopomenka pomena 999?",
+        "target_word": "kos",
+        "lemma": "kos",
+        "pos": "noun",
+        "question_type": "relation",
+        "relation": "synonym",
+        "related_sense_id": "999",
+        "context_sentence": "",
+        "gold_sense_id": "10",
+        "gold_answer": "del celote",
+        "source_dictionary_version": "DDDS backup v3.68",
+    }
+    (qdir / "questions.jsonl").write_text(
+        json.dumps(relation_q, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    cfg = ExperimentConfig(
+        name="relation-run",
+        questions_path=Path("data/questions/questions.jsonl"),
+        llm=LlmConfig(),
+        embedder=EmbedderConfig(name="fake", hf_id="fake", revision="x"),
+        runs_dir=Path("runs"),
+    )
+    vector = RecordingVector()
+    run_dir = runner_mod.run_experiment(
+        cfg,
+        root=tmp_path,
+        dry_run=True,
+        variants=["A", "B", "C", "oracle"],
+        chunks=CHUNKS,
+        vector=vector,
+    )
+    rows = [
+        json.loads(line)
+        for line in (run_dir / "answers.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert len(rows) == 4
+    by_variant = {r["variant"]: r for r in rows}
+    # variant B searches with the question text, not a context sentence
+    assert vector.queries == [relation_q["question"]]
+    assert by_variant["C"]["context_kind"] == "structured"
+    assert by_variant["C"]["related_visible_in_synonyms"] is False
+    assert by_variant["oracle"]["context_kind"] == "oracle_relation"
+    assert by_variant["oracle"]["gold_evidence"] is True
+    assert by_variant["oracle"]["evidence_sense_ids"] == ["10"]
+    assert by_variant["oracle"]["related_sense_id"] == "999"
+    assert "Graf:" in by_variant["oracle"]["prompt"]
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["template_versions"] == ["rel-v1"]
