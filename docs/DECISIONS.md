@@ -340,3 +340,23 @@ of C's questions (q-013, q-019, q-027 recovered; no C-only win).
   (citation accuracy, coverage, taxonomy).
 - Report: new sections "Error taxonomy" and "Candidate coverage"; B notes now
   carry MRR / top-1-wrong-lemma / related-retrieved.
+
+## D-024 (2026-10-22) - Correction: C and D context blocks are not byte-identical
+
+D-018 and D-021 claimed that variant D renders "contexts byte-identical to
+variant C, so the only difference is the ORDER of candidates". Working through
+the capped runs (q-005 case study) showed this is not exactly true:
+
+- the graph path (D) fetches collocation forms and synonyms from Neo4j and
+  sorts them alphabetically, so the 8 "Zveze" shown per candidate can be a
+  DIFFERENT SUBSET than C's export order (first 8 of the dependency list);
+- synonym labels can differ (the graph prints the target sense's lemma, the
+  DDDS export prints the relation text, e.g. "vlakec" vs "vlakec smrti").
+
+Impact: the headline results are unaffected - the decisive C-vs-D differences
+under a cap are coverage effects (whether the gold candidate is shown at all),
+not block-content effects (the three questions that flip at every budget have
+the gold OUTSIDE C's first k). The notebooks document this caveat
+(`03_budget.ipynb`). Optional future fix: store the export order on
+COLLOCATES_WITH edges in the loader and reload the graph; only then is
+"D = C + ordering" strictly true.

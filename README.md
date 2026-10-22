@@ -79,8 +79,9 @@ data/
   questions/        the question set with gold answers + review status (committed)
 docs/               DATA.md, DECISIONS.md, LINKINGTK_SPIKE.md, REPRODUCE.md, RUN_PILOT.md
 runs/               per-run artifacts: answers.jsonl, manifest.json, metrics, report
+notebooks/          the analysis story: 5 executed notebooks + figures (see notebooks/README.md)
 scripts/            thin CLIs (download, register, db_restore, export, index, load_graph, evaluate)
-src/elexai/         sources/ graph/ retrieval/ llm/ eval/ runner/
+src/elexai/         sources/ graph/ retrieval/ llm/ eval/ runner/ analysis
 tests/              unit tests
 ```
 
