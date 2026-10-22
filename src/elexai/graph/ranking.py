@@ -219,9 +219,11 @@ def build_relation_context(
     graph evidence line ("Graf: ...") for every shown candidate that stands in
     the asked relation to the given sense.
 
-    With ``gold_sense_id`` set, only the gold sense + nearest siblings of the
-    same lemma are shown (oracle semantics); otherwise candidates are ranked
-    like in variant D.
+    Candidates WITH graph evidence are ranked first (the edge is the retrieval
+    signal), then by the lexical score, then by dictionary order. With
+    ``gold_sense_id`` set, only the gold sense + nearest siblings of the same
+    lemma are shown (oracle semantics); otherwise candidates are ranked like in
+    variant D.
     """
     if gold_sense_id is not None:
         ordered = sorted(
@@ -251,7 +253,11 @@ def build_relation_context(
             weight_synonym=weight_synonym,
             weight_synset_literal=weight_synset_literal,
             weight_hypernym_gloss=weight_hypernym_gloss,
-        )[:max_candidates]
+        )
+        # evidence-bearing candidates first; stable sort keeps the lexical
+        # score order within both groups
+        ranked.sort(key=lambda r: 0 if r.sense.sense_id in evidence else 1)
+        ranked = ranked[:max_candidates]
 
     blocks: list[str] = []
     for r in ranked:

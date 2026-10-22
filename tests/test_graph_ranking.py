@@ -146,3 +146,15 @@ def test_build_relation_context_oracle_selects_gold_first():
 def test_build_relation_context_cap_keeps_ranking_order():
     _, shown, _ = build_relation_context("x", "kos", kos_candidates(), {}, max_candidates=1)
     assert shown == ["10"]
+
+
+def test_build_relation_context_evidence_first():
+    text, shown, scores = build_relation_context(
+        "cislo nic se ne ujema",
+        "kos",
+        kos_candidates(),
+        {"11": "Graf: ta pomen je sopomenka pomena 999."},
+    )
+    assert shown == ["11", "10"]  # evidence-bearing candidate moves to the top
+    assert text.index("ID: 11") < text.index("ID: 10")
+    assert "Graf: ta pomen je sopomenka pomena 999." in text

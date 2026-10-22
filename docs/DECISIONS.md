@@ -314,3 +314,29 @@ Design decisions:
 - Scoring/report are segmented by question type; availability flags are logged
   (C: relation visible in the synonym lists; D/oracle: graph evidence present
   for the gold candidate).
+
+## D-023 (2026-10-22) - Analysis round 1: candidate-cap experiment, evidence-first ranking, richer metrics
+
+Motivation: the 36-question run (20261022-091557) saturated - C = D = oracle =
+100% excl. trick; with all candidates visible, candidate ORDER cannot matter, so
+the graph cannot show any benefit. Projection from the logged orders/ranks: with
+a candidate cap of 3, C (dictionary order) would cover the gold in 19/28 and D
+(graph rank) in 22/28 sense questions (excl. trick), with D covering a superset
+of C's questions (q-013, q-019, q-027 recovered; no C-only win).
+
+- `configs/cap3.yaml`: same as skeleton.yaml but `structured.max_senses: 3` and
+  `graph.max_candidates: 3`; oracle keeps gold + neighbours (cap 5) as ceiling.
+- Relation questions: D/oracle now rank candidates WITH graph evidence first
+  (stable sort: evidence, then lexical score, then dictionary order). Before,
+  the evidence line was displayed but did not affect the order, so under a cap
+  the graph could not influence selection at all (projection: D cap1 was worse
+  than C; with evidence-first the comparison becomes C = dictionary order without
+  joins vs D = graph join used for both display and selection).
+- Metrics extended (all retroactively computable from answers.jsonl): error
+  taxonomy of citations (correct / wrong-same-lemma / wrong-other-lemma /
+  unknown id / none), candidate coverage@k for C/D (gold in the first k shown;
+  constant denominator, monotone), B: MRR + top-1-wrong-lemma rate +
+  related-sense-retrieved. Trick-excluded metrics are nested under `excl_trick`
+  (citation accuracy, coverage, taxonomy).
+- Report: new sections "Error taxonomy" and "Candidate coverage"; B notes now
+  carry MRR / top-1-wrong-lemma / related-retrieved.

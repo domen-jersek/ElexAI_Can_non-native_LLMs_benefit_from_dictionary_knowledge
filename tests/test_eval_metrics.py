@@ -177,16 +177,31 @@ def _write_relation_run(tmp_path: Path) -> Path:
         return base
 
     rows = [
-        row("s1", "C", parsed_sense_id="10", parsed_answer="del celote", gold_present=True),
-        row("t1", "C", parsed_sense_id="99", parsed_answer="napačno", gold_present=True),
+        row(
+            "s1", "C", parsed_sense_id="10", parsed_answer="del celote",
+            gold_present=True, shown_sense_ids=["10", "11"],
+        ),
+        row(
+            "t1", "C", parsed_sense_id="99", parsed_answer="napačno",
+            gold_present=True, shown_sense_ids=["21", "20"],
+        ),
         row(
             "r1", "C", parsed_sense_id="30", parsed_answer="moški z mišicami",
-            gold_present=True, related_visible_in_synonyms=True,
+            gold_present=True, shown_sense_ids=["30", "31"],
+            related_visible_in_synonyms=True,
             question_type="relation", related_sense_id="99", relation="synonym",
+        ),
+        row(
+            "s1", "B", parsed_sense_id="20", parsed_answer="del rastline", lemma="kos",
+            retrieved=[{"sense_id": "20", "score": 0.9}, {"sense_id": "10", "score": 0.5}],
         ),
         row(
             "r1", "D", parsed_sense_id="30", parsed_answer="moški z mišicami",
             gold_present=True, gold_rank=1, evidence_sense_ids=["30"], gold_evidence=True,
+            graph_scores=[
+                {"sense_id": "30", "score": 1.0},
+                {"sense_id": "31", "score": 0.0},
+            ],
             question_type="relation", related_sense_id="99", relation="synonym",
         ),
     ]
@@ -198,18 +213,36 @@ def _write_relation_run(tmp_path: Path) -> Path:
 
 def test_relation_and_trick_segmentation(tmp_path):
     run_dir = _write_relation_run(tmp_path)
-    metrics = evaluate_run(run_dir, tmp_path)
+    senses = {
+        "10": "kos",
+        "11": "kos",
+        "20": "list",
+        "21": "list",
+        "30": "mišičnjak",
+        "31": "mišičnjak",
+        "99": "drug",
+    }
+    metrics = evaluate_run(run_dir, tmp_path, senses=senses)
 
     assert metrics["question_types"] == ["relation", "sense_disambiguation"]
     assert metrics["trick_question_ids"] == ["t1"]
 
     c = metrics["variants"]["C"]
     assert c["citation_accuracy"] == round(2 / 3, 3)
-    assert c["citation_accuracy_excl_trick"] == 1.0
+    assert c["excl_trick"]["citation_accuracy"] == 1.0
     assert c["by_question_type"]["relation"]["citation_accuracy"] == 1.0
     assert c["by_question_type"]["sense_disambiguation"]["citation_accuracy"] == 0.5
     assert c["relation_visible_in_synonyms"] == {"n": 1, "visible": 1}
+    assert c["error_taxonomy"] == {"correct": 2, "wrong_other_lemma": 1}
+    assert c["coverage_at_k"]["1"] == round(2 / 3, 3)
+    assert c["coverage_at_k"]["2"] == 1.0
+    assert c["excl_trick"]["coverage_at_k"]["1"] == 1.0
+
+    b = metrics["variants"]["B"]
+    assert b["mrr"] == 0.5
+    assert b["top1_wrong_lemma_rate"] == 1.0
 
     d = metrics["variants"]["D"]
     assert d["relation_evidence"] == {"n": 1, "gold_evidence": 1}
     assert d["by_question_type"]["relation"]["gold_rank_mean"] == 1.0
+    assert d["coverage_at_k"]["1"] == 1.0

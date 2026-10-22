@@ -81,7 +81,7 @@ def build_report(run_dir: Path, metrics: dict) -> str:
         for variant, m in metrics["variants"].items():
             lines.append(
                 f"| {_VARIANT_LABEL.get(variant, variant)} | {fmt(m.get('citation_accuracy'))} "
-                f"| {fmt(m.get('citation_accuracy_excl_trick'))} |"
+                f"| {fmt((m.get('excl_trick') or {}).get('citation_accuracy'))} |"
             )
         lines.append("")
 
@@ -117,6 +117,13 @@ def build_report(run_dir: Path, metrics: dict) -> str:
         if variant == "B":
             recall = ", ".join(f"{k}: {v:.2f}" for k, v in m.get("recall_at_k", {}).items())
             notes = f"recall@k -> {recall}"
+            if m.get("mrr") is not None:
+                notes += f"; MRR {m['mrr']}"
+            if m.get("top1_wrong_lemma_rate") is not None:
+                notes += f"; top-1 wrong-lemma {m['top1_wrong_lemma_rate']}"
+            rel = m.get("related_retrieved")
+            if rel:
+                notes += f"; related sense retrieved {rel['retrieved']}/{rel['n']}"
         elif variant == "C":
             notes = "coverage = is the gold sense among the shown candidates"
         elif variant == "D":
@@ -135,6 +142,38 @@ def build_report(run_dir: Path, metrics: dict) -> str:
             f"{m.get('retrieval_errors', 0)} | {m.get('composition_errors', 0)} | {notes} |"
         )
     lines.append("")
+    lines.append("## Error taxonomy (cited sense vs gold)")
+    lines.append("")
+    lines.append(
+        "| variant | correct | wrong, same lemma | wrong, other lemma | unknown id | none |"
+    )
+    lines.append("|---|---|---|---|---|---|")
+    for variant, m in metrics["variants"].items():
+        tax = m.get("error_taxonomy")
+        if not tax:
+            continue
+        lines.append(
+            f"| {_VARIANT_LABEL.get(variant, variant)} | {tax.get('correct', 0)} "
+            f"| {tax.get('wrong_same_lemma', 0)} | {tax.get('wrong_other_lemma', 0)} "
+            f"| {tax.get('wrong_unknown_id', 0)} | {tax.get('none', 0)} |"
+        )
+    lines.append("")
+    coverage_ks = sorted(
+        {int(k) for m in metrics["variants"].values() for k in (m.get("coverage_at_k") or {})}
+    )
+    if coverage_ks:
+        show_ks = [k for k in (1, 2, 3, 5, 10, 12) if k in coverage_ks] or coverage_ks
+        lines.append("## Candidate coverage (is the gold sense in the first k? C/D)")
+        lines.append("")
+        lines.append("| variant | " + " | ".join(f"top-{k}" for k in show_ks) + " |")
+        lines.append("|" + "---|" * (len(show_ks) + 1))
+        for variant, m in metrics["variants"].items():
+            cov = m.get("coverage_at_k")
+            if not cov:
+                continue
+            cells = " | ".join(fmt(cov.get(str(k))) for k in show_ks)
+            lines.append(f"| {_VARIANT_LABEL.get(variant, variant)} | {cells} |")
+        lines.append("")
     lines.append("## Per-question detail")
     lines.append("")
     lines.append("| question | variant | cited | citation correct | answer F1 | cached |")

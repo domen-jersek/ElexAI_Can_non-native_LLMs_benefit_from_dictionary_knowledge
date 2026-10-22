@@ -5,11 +5,15 @@ resolved config) and computes, per variant:
 
 - citation accuracy (does the cited DDDS sense id match the gold id; variants
   with a candidate list) and ``none``-citation counts;
+- error taxonomy of the citations: correct / wrong-same-lemma /
+  wrong-other-lemma / unknown id / none;
+- candidate coverage@k for C/D: is the gold sense in the first k candidates of
+  the shown order (dictionary order for C, graph rank for D);
 - answer quality vs the (draft) gold answer text: token F1 + threshold accuracy;
 - latency p50/p95 over non-cached successful calls, cache-hit counts;
-- variant B: recall@k from the logged retrieval + retrieval-vs-composition
-  error split; variant C: candidate-coverage-vs-composition split;
-  oracle: composition-only split;
+- variant B: recall@k, MRR and top-1-wrong-lemma rate from the logged
+  retrieval + retrieval-vs-composition error split; variant C: candidate
+  coverage-vs-composition split; oracle: composition-only split;
 - per-question rows for eyeballing and the report.
 """
 
@@ -23,7 +27,11 @@ from pathlib import Path
 
 import yaml
 
+from elexai.questions import load_senses_export
+
 _PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)
+
+SENSES_EXPORT = Path("data/processed/ddds/senses.jsonl")
 
 
 def normalize_text(text: str) -> str:
@@ -96,6 +104,7 @@ def _variant_stats(
     sweep_k: list[int],
     k_generation: int,
     threshold: float,
+    senses: dict[str, str] | None = None,
 ) -> tuple[dict, list[dict]]:
     """Metrics for one variant over the given rows (+ per-question rows)."""
     n = len(rows)
@@ -122,7 +131,29 @@ def _variant_stats(
     rel_evidence_ok = 0
     rel_visible_n = 0
     rel_visible_ok = 0
+    taxonomy: Counter = Counter()
+    coverage_orders: list[tuple[list[str], str]] = []
+    mrr_sum = 0.0
+    retrieved_n = 0
+    top1_wrong_lemma = 0
+    related_retrieved_n = 0
+    related_retrieved_ok = 0
     per_question: list[dict] = []
+
+    def _cited_category(cited: str | None, gold_id: str, lemma: str) -> str:
+        if cited is None:
+            return "none"
+        cited = str(cited)
+        if cited == gold_id:
+            return "correct"
+        if senses is not None:
+            cited_lemma = senses.get(cited)
+            if cited_lemma is None:
+                return "wrong_unknown_id"
+            if lemma and cited_lemma.lower() == lemma.lower():
+                return "wrong_same_lemma"
+            return "wrong_other_lemma"
+        return "wrong_unclassified"
 
     for r in rows:
         gold_id = str(r["gold_sense_id"])
@@ -143,6 +174,7 @@ def _variant_stats(
             f1_correct += 1
 
         cited = r.get("parsed_sense_id")
+        category: str | None = None
         is_correct = False
         if variant in ("B", "C", "D", "oracle"):
             citation_total += 1
@@ -151,6 +183,8 @@ def _variant_stats(
             if cited is not None and str(cited) == gold_id:
                 citation_correct += 1
                 is_correct = True
+            category = _cited_category(cited, gold_id, str(r.get("lemma") or ""))
+            taxonomy[category] += 1
         else:
             is_correct = f1 >= threshold
 
@@ -165,6 +199,22 @@ def _variant_stats(
                 retrieval_errors += 1
             elif not is_correct:
                 composition_errors += 1
+            if retrieved:
+                retrieved_n += 1
+                if senses is not None:
+                    top1_lemma = senses.get(retrieved[0])
+                    if (
+                        top1_lemma is not None
+                        and r.get("lemma")
+                        and top1_lemma.lower() != str(r["lemma"]).lower()
+                    ):
+                        top1_wrong_lemma += 1
+            if gold_id in retrieved:
+                mrr_sum += 1.0 / (retrieved.index(gold_id) + 1)
+            if r.get("question_type") == "relation" and r.get("related_sense_id"):
+                related_retrieved_n += 1
+                if str(r["related_sense_id"]) in retrieved:
+                    related_retrieved_ok += 1
         elif variant in ("C", "D"):
             if variant == "D" and r.get("gold_rank") is not None:
                 gold_ranks.append(int(r["gold_rank"]))
@@ -173,6 +223,16 @@ def _variant_stats(
                 retrieval_errors += 1
             elif not is_correct:
                 composition_errors += 1
+            if variant == "C":
+                order = [str(x) for x in r.get("shown_sense_ids", [])]
+            else:
+                graph_scores = r.get("graph_scores") or []
+                order = (
+                    [str(s["sense_id"]) for s in graph_scores]
+                    if graph_scores
+                    else [str(x) for x in r.get("shown_sense_ids", [])]
+                )
+            coverage_orders.append((order, gold_id))
         elif variant == "oracle":
             if not r.get("gold_present", False):
                 coverage_misses += 1
@@ -198,6 +258,7 @@ def _variant_stats(
                 "citation_correct": (str(cited) == gold_id)
                 if variant in ("B", "C", "D", "oracle")
                 else None,
+                "citation_category": category,
                 "answer_f1": round(f1, 3),
                 "answer_correct": f1 >= threshold,
                 "latency_ms": r.get("latency_ms"),
@@ -221,14 +282,34 @@ def _variant_stats(
         entry["cite_none"] = cite_none
         entry["retrieval_errors"] = retrieval_errors
         entry["composition_errors"] = composition_errors
+        entry["error_taxonomy"] = dict(sorted(taxonomy.items()))
     if variant == "B":
         entry["recall_at_k"] = {
             str(k): round(hits / n, 3) if n else None
             for k, hits in sorted(retrieval_hits_by_k.items())
         }
         entry["retrieval_misses"] = retrieval_misses
+        entry["mrr"] = round(mrr_sum / n, 3) if n else None
+        entry["top1_wrong_lemma_rate"] = (
+            round(top1_wrong_lemma / retrieved_n, 3) if retrieved_n else None
+        )
+        if related_retrieved_n:
+            entry["related_retrieved"] = {
+                "n": related_retrieved_n,
+                "retrieved": related_retrieved_ok,
+            }
     if variant in ("C", "D", "oracle"):
         entry["coverage_misses"] = coverage_misses
+    if variant in ("C", "D") and coverage_orders:
+        max_k = min(max(len(order) for order, _ in coverage_orders), 12)
+        entry["coverage_at_k"] = {
+            str(k): round(
+                sum(1 for order, gold in coverage_orders if gold in order[:k])
+                / len(coverage_orders),
+                3,
+            )
+            for k in range(1, max_k + 1)
+        }
     if variant == "D" and gold_ranks:
         entry["gold_rank_mean"] = round(sum(gold_ranks) / len(gold_ranks), 2)
         entry["gold_rank_p50"] = percentile([float(x) for x in gold_ranks], 50)
@@ -239,7 +320,9 @@ def _variant_stats(
     return entry, per_question
 
 
-def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
+def evaluate_run(
+    run_dir: Path, repo_root: Path, senses: dict[str, str] | None = None
+) -> dict:
     run_dir = Path(run_dir)
     cfg = yaml.safe_load((run_dir / "config.resolved.yaml").read_text(encoding="utf-8"))
     sweep_k = cfg["retrieval"]["sweep_k"]
@@ -247,6 +330,10 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
     threshold = cfg["eval"]["answer_f1_threshold"]
     meta = _load_question_meta(run_dir, repo_root)
     gold_answers = {qid: m["gold_answer"] for qid, m in meta.items()}
+    if senses is None:
+        senses_path = Path(repo_root) / SENSES_EXPORT
+        if senses_path.exists():
+            senses = load_senses_export(senses_path)
 
     rows = _load_answers(run_dir)
     variants: dict[str, dict] = {}
@@ -259,6 +346,7 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
         "sweep_k": sweep_k,
         "k_generation": k_generation,
         "threshold": threshold,
+        "senses": senses,
     }
 
     for variant in sorted({r["variant"] for r in rows}):
@@ -278,8 +366,19 @@ def evaluate_run(run_dir: Path, repo_root: Path) -> dict:
             subset = [r for r in vrows if r["question_id"] not in trick_set]
             if subset:
                 sub, _ = _variant_stats(subset, variant, **stats_kwargs)
-                if "citation_accuracy" in sub:
-                    entry["citation_accuracy_excl_trick"] = sub["citation_accuracy"]
+                entry["excl_trick"] = {
+                    key: sub[key]
+                    for key in (
+                        "n",
+                        "citation_accuracy",
+                        "error_taxonomy",
+                        "coverage_at_k",
+                        "mrr",
+                        "retrieval_errors",
+                        "composition_errors",
+                    )
+                    if key in sub
+                }
         variants[variant] = entry
 
     return {
