@@ -4,9 +4,9 @@ Research pilot for [ELEXAI](https://elex.is/) (Horizon Europe, 2026-2029; FRI pr
 does lexicographic knowledge (a dictionary, structured senses) improve LLM answers?
 
 **Task.** One dictionary (the Digital Dictionary Database of Slovene, DDDS) and one
-question type (sense disambiguation of polysemous words). All variants share the same
-LLM, the same question set and the same prompt template; only the supplied context
-differs:
+core question type - sense disambiguation of polysemous words - plus a small pack of
+lexical-relation questions (30 + 6 items). All variants share the same LLM, the same
+question set and the same prompt template; only the supplied context differs:
 
 | Variant | Context |
 |---|---|
@@ -26,18 +26,16 @@ analysis. Scoring is LLM-free and separate from generation.
 - [x] **Phase 0** - scaffold, source registration (`data/MANIFEST.json`), DDDS snapshot
       restored + inspected (`docs/DATA.md`)
 - [x] **Phase 0.5** - walking skeleton: variants A/B/C/oracle runnable end-to-end,
-      response cache, run manifests, LLM-free scoring + reports.
-      How to run it yourself: **`docs/RUN_PILOT.md`**
-- [x] **Graph backend** (optional Phase 3) - variant D (graph RAG): Neo4j loader,
-      OSWN <-> DDDS re-link via LinkingTK (two-pass, positive: see
-      `docs/LINKINGTK_SPIKE.md`), OEWN 2023 hierarchy, neighborhood-ranked candidates.
-      The question set grew to 36 DRAFT items (30 sense-disambiguation + 6 relation);
-      the first full round (30 questions x 5 variants) ran end-to-end.
-- [ ] Phase 1 - lexicographer verifies/replaces the 30 draft questions; expand the set
-- [ ] Phase 2 - full evaluation round: statistics (McNemar + bootstrap CIs), plots,
-      error-analysis report
-- [ ] Proposed (pending mentor approval) - a second question type on lexical relations
-      (synonyms/hypernyms), where graph retrieval has no text-RAG equivalent
+      response cache, run manifests, LLM-free scoring + reports
+- [x] **Graph backend** - variant D (graph RAG): Neo4j loader, OSWN <-> DDDS re-link
+      via LinkingTK (`docs/LINKINGTK_SPIKE.md`), OEWN 2023 hierarchy,
+      neighborhood-ranked candidates
+- [x] **Analysis tooling** - `notebooks/`: five executed notebooks (methods, the
+      head-to-head comparison across candidate budgets, the "when does the graph pay
+      off" rule, relations, statistics); budget configs in `configs/cap{1,2,3}.yaml`
+- [ ] **Phase 1** - lexicographer verifies/replaces the 36 draft questions; expand the set
+- [ ] **Phase 2** - final evaluation round after verification (statistics and plots are
+      prototyped in the notebooks)
 
 ## Quickstart
 
@@ -64,6 +62,7 @@ make index CONFIG=configs/skeleton.yaml            # one-time; BGE-M3, ~1-2 h on
 uv run python scripts/load_graph.py                # one-time; variant D (Neo4j Desktop)
 uv run python -m elexai.runner configs/skeleton.yaml   # 36 questions x 5 variants
 make eval                                          # metrics + runs/<id>/report.md
+# analysis: five executed notebooks in notebooks/ (see notebooks/README.md)
 ```
 
 Full walkthrough, costs, and how to read the results: **`docs/RUN_PILOT.md`**.
@@ -94,6 +93,7 @@ tests/              unit tests
 | `docs/DECISIONS.md` | decision log with rationale - read this first |
 | `docs/LINKINGTK_SPIKE.md` | OSWN <-> DDDS re-linking with LinkingTK: method, two-pass results, artifacts |
 | `docs/REPRODUCE.md` | exact steps from a clean clone to reproduced results |
+| `notebooks/README.md` | the analysis story: five executed notebooks + figures |
 | `AGENTS.md` | working rules for contributors (human or AI) |
 
 ## Attribution and licensing
