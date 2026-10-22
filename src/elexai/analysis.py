@@ -292,6 +292,8 @@ def load_answers(
                         "matched_definition": s.get("matched_definition"),
                         "matched_collocations": s.get("matched_collocations"),
                         "matched_synonyms": s.get("matched_synonyms"),
+                        "matched_synset_literals": s.get("matched_synset_literals"),
+                        "matched_hypernym_glosses": s.get("matched_hypernym_glosses"),
                     }
                     for s in (r.get("graph_scores") or [])
                 ],
@@ -385,6 +387,66 @@ def correctness_matrix(
     return d.pivot_table(
         index="question_id", columns="variant", values="correct", aggfunc="first"
     ).astype(bool)
+
+
+def payoff_table(
+    run_id: str,
+    runs_dir: Path = RUNS_DIR,
+    questions_path: Path = QUESTIONS_PATH,
+    senses_path: Path = SENSES_EXPORT,
+) -> pd.DataFrame:
+    """Per-question features behind the "when does the graph pay off?" rule.
+
+    For every non-trick question (use the FULL-context run; the ranking is
+    logged for all candidates there):
+
+    - ``c_position``: gold position in variant C's dictionary order;
+    - ``d_rank``: gold rank in variant D's graph order;
+    - ``score``: the gold sense's graph score (weighted token overlap with its
+      neighbourhood);
+    - ``signal``: did the sentence match ANY part of the sense's structured
+      neighbourhood (collocations, synonyms, synset literals, hypernym glosses,
+      definition tokens)?
+
+    Candidate-set size (senses of the lemma) can be joined by the notebook from
+    its own senses table.
+    """
+    df = load_answers(run_id, runs_dir=runs_dir, questions_path=questions_path, senses_path=senses_path)
+    c = df[df["variant"] == "C"].set_index("question_id")
+    d = df[df["variant"] == "D"].set_index("question_id")
+
+    rows: list[dict] = []
+    for qid in c.index:
+        if bool(c.loc[qid, "is_trick"]):
+            continue
+        gold = str(c.loc[qid, "gold_sense_id"])
+        shown = [str(x) for x in (c.loc[qid, "shown_ids"] or [])]
+        c_position = shown.index(gold) + 1 if gold in shown else None
+        d_rank = d.loc[qid, "gold_rank"]
+        features = {f["sense_id"]: f for f in (d.loc[qid, "ranked_features"] or [])}
+        gold_features = features.get(gold, {})
+        matched_collocations = gold_features.get("matched_collocations") or []
+        signal = bool(
+            matched_collocations
+            or gold_features.get("matched_synonyms")
+            or gold_features.get("matched_synset_literals")
+            or gold_features.get("matched_hypernym_glosses")
+            or gold_features.get("matched_definition")
+        )
+        rows.append(
+            {
+                "question_id": qid,
+                "lemma": c.loc[qid, "lemma"],
+                "question_type": c.loc[qid, "question_type"],
+                "gold_sense_id": gold,
+                "c_position": c_position,
+                "d_rank": int(d_rank) if pd.notna(d_rank) else None,
+                "score": gold_features.get("score"),
+                "signal": signal,
+                "matched_collocations": matched_collocations,
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 # ---------------------------------------------------------------------------

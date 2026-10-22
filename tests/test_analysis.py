@@ -17,6 +17,7 @@ from elexai.analysis import (
     find_runs,
     load_answers,
     mcnemar_exact,
+    payoff_table,
 )
 
 QUESTIONS = [
@@ -106,7 +107,7 @@ def _write_run(tmp_path: Path) -> Path:
         _answer("s1", "C", "10", "10", shown_sense_ids=["10", "11"]),
         _answer("s2", "C", "20", "21", shown_sense_ids=["20", "21"]),
         _answer("r1", "C", "30", None),
-        _answer("s1", "D", "10", "12", gold_rank=1, graph_scores=[{"sense_id": "10", "score": 1.0}]),
+        _answer("s1", "D", "10", "12", gold_rank=1, graph_scores=[{"sense_id": "10", "score": 1.0, "matched_collocations": ["kruha"]}]),
         _answer("s2", "D", "20", "10", gold_rank=2, graph_scores=[{"sense_id": "21", "score": 1.0}, {"sense_id": "20", "score": 0.5}]),
         _answer("r1", "D", "30", "30", gold_rank=1, gold_evidence=True, evidence_sense_ids=["30"]),
     ]
@@ -207,3 +208,23 @@ def test_correctness_matrix_and_stats(tmp_path):
     assert lo == 1.0 and hi == 1.0
     lo, hi = bootstrap_ci(5, 10)
     assert 0.0 < lo < 0.5 < hi < 1.0
+
+
+def test_payoff_table(tmp_path):
+    runs_dir = _write_run(tmp_path)
+    table = payoff_table(
+        "20260101-000000_testrun",
+        runs_dir=runs_dir,
+        questions_path=tmp_path / "questions.jsonl",
+        senses_path=tmp_path / "senses.jsonl",
+    )
+    assert list(table["question_id"]) == ["s1", "s2"]  # trick question excluded
+    s1 = table[table["question_id"] == "s1"].iloc[0]
+    assert s1["c_position"] == 1  # gold 10 is first in C's shown order
+    assert s1["d_rank"] == 1
+    assert bool(s1["signal"]) is True
+    assert s1["matched_collocations"] == ["kruha"]
+    s2 = table[table["question_id"] == "s2"].iloc[0]
+    assert s2["c_position"] == 1
+    assert s2["d_rank"] == 2
+    assert bool(s2["signal"]) is False
