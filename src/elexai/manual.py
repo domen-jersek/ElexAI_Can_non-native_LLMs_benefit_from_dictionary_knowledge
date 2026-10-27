@@ -75,6 +75,53 @@ def _read_answers(run_dir: Path) -> list[dict]:
     ]
 
 
+def validate_answers(csv_path: Path) -> dict:
+    """Check a (partially) filled answers CSV before importing it.
+
+    Looks for rows that would silently score as wrong: no ``ODGOVOR:`` text,
+    missing ``SENSE_ID:`` on variants that must cite one, suspicious lengths and
+    identical answer texts in several rows. The raw text is never changed.
+    """
+    from elexai.runner.run import parse_output
+
+    with Path(csv_path).open(encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.DictReader(f))
+
+    per_variant: Counter = Counter()
+    problems: list[dict] = []
+    seen_texts: dict[str, list[str]] = {}
+    for row in rows:
+        raw = (row.get("answer_raw") or "").strip()
+        if not raw:
+            continue
+        key = f"{row.get('question_id')} {row.get('variant')}"
+        variant = row.get("variant", "?")
+        per_variant[variant] += 1
+        sense_id, answer = parse_output(raw)
+        if not answer:
+            problems.append({"row": key, "problem": "no 'ODGOVOR:' text parsed"})
+        elif len(answer) < 15:
+            problems.append({"row": key, "problem": f"answer text suspiciously short ({len(answer)} chars)"})
+        if len(raw) > 2000:
+            problems.append({"row": key, "problem": f"raw answer suspiciously long ({len(raw)} chars)"})
+        if variant in ("B", "C", "D", "oracle") and sense_id is None:
+            problems.append({"row": key, "problem": "no SENSE_ID parsed (expected for this variant)"})
+        if answer:
+            seen_texts.setdefault(answer[:200], []).append(key)
+    for keys in seen_texts.values():
+        if len(keys) > 1:
+            problems.append({"row": ", ".join(keys), "problem": "identical answer text in several rows"})
+
+    return {
+        "csv": str(csv_path),
+        "n_rows": len(rows),
+        "n_filled": sum(per_variant.values()),
+        "per_variant": dict(sorted(per_variant.items())),
+        "n_problems": len(problems),
+        "problems": problems,
+    }
+
+
 def _sha256(path: Path) -> str | None:
     if not path.exists():
         return None
@@ -174,7 +221,7 @@ def import_answers(
     src_rows = {(r["question_id"], r["variant"]): r for r in _read_answers(src_dir)}
 
     filled: list[tuple[tuple[str, str], str]] = []
-    with Path(csv_path).open(encoding="utf-8", newline="") as f:
+    with Path(csv_path).open(encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             raw = (row.get("answer_raw") or "").strip()

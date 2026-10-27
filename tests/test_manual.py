@@ -164,3 +164,60 @@ def test_import_answers_errors(tmp_path):
     )
     with pytest.raises(SystemExit):
         import_answers("20260101-000000_testrun", wrong_csv, model_label="m", runs_dir=runs_dir)
+
+
+def test_import_answers_tolerates_excel_bom(tmp_path):
+    runs_dir = _write_source_run(tmp_path)
+    answers_csv = tmp_path / "answers_bom.csv"
+    answers_csv.write_text(
+        "\ufeffquestion_id,variant,answer_raw\n"
+        'q-001,C,"SENSE_ID: 10\nODGOVOR: del celote"\n',
+        encoding="utf-8",
+    )
+    run_dir = import_answers(
+        "20260101-000000_testrun", answers_csv, model_label="m", runs_dir=runs_dir
+    )
+    records = [
+        json.loads(line)
+        for line in (run_dir / "answers.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert records[0]["question_id"] == "q-001"
+    assert records[0]["parsed_sense_id"] == "10"
+
+
+def test_validate_answers(tmp_path):
+    from elexai.manual import validate_answers
+
+    csv_path = tmp_path / "answers.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["question_id", "variant", "answer_raw"])
+        writer.writerow(
+            ["q-001", "A", "SENSE_ID: none ODGOVOR: kos je odrezan del kruha."]
+        )
+        writer.writerow(
+            ["q-002", "C", "SENSE_ID: 10\nODGOVOR: del snovi ali predmeta, ločen od celote"]
+        )
+        writer.writerow(
+            ["q-003", "C", "SENSE_ID: 11\nODGOVOR: del snovi ali predmeta, ločen od celote"]
+        )
+        writer.writerow(["q-004", "C", "SENSE_ID: 12"])  # no ODGOVOR
+        writer.writerow(["q-005", "D", "ODGOVOR: pomen brez identifikatorja"])  # no SENSE_ID
+        writer.writerow(["q-006", "B", ""])  # empty - not counted
+
+    report = validate_answers(csv_path)
+    assert report["n_rows"] == 6
+    assert report["n_filled"] == 5
+    assert report["per_variant"] == {"A": 1, "C": 3, "D": 1}
+    problems = [(p["row"], p["problem"]) for p in report["problems"]]
+    assert ("q-004 C", "no 'ODGOVOR:' text parsed") in problems
+    assert any(row == "q-005 D" and "no SENSE_ID" in problem for row, problem in problems)
+    assert any("q-002 C, q-003 C" == row and "identical" in problem for row, problem in problems)
+    assert report["n_problems"] == 3
+
+    clean = tmp_path / "clean.csv"
+    with clean.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["question_id", "variant", "answer_raw"])
+        writer.writerow(["q-001", "C", "SENSE_ID: 10\nODGOVOR: del snovi, ločen od celote"])
+    assert validate_answers(clean)["n_problems"] == 0
