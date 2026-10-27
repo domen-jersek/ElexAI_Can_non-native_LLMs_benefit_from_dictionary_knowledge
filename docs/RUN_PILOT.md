@@ -1,9 +1,9 @@
 # RUN_PILOT.md - how to run the pilot tests yourself
 
-This is the guide for running the actual experiments (variants A/B/C/oracle over the
+This is the guide for running the actual experiments (variants A/B/C/D/oracle over the
 DDDS dictionary). The platform is already built, the database is restored and the
-question set (22 drafts) is validated; you only need an OpenRouter API key and two
-commands.
+question set (36 drafts) is validated; you only need an OpenRouter API key and two
+commands. Models that are reachable only through a chat UI are covered in section 6.
 
 ## 0. One-time: add your API key
 
@@ -120,6 +120,51 @@ retrieval.
   `retrieval.k` (rebuild the index when the embedder changes; k needs no rebuild).
 - **Questions**: edit `data/questions/questions.jsonl` (schema + validator:
   `uv run python scripts/validate_questions.py --senses data/processed/ddds/senses.jsonl`).
+
+## 6. Chat-only models (GaMS on povejmo.si)
+
+The GaMS models (CJVT/FRI) have no API - the only public access is the chat at
+<https://povejmo.si> (`robots.txt` disallows `/api`, so only the UI is used). The
+same run format is produced in two ways; both are documented in
+`src/elexai/manual.py` and `src/elexai/scrape_povejmo.py`.
+
+**a) Manual kit** - export the exact prompts of an existing run, fill them by hand,
+import them back:
+
+```
+uv run python scripts/export_manual_prompts.py --run 20261022-091557_skeleton
+uv run python scripts/import_manual_answers.py --source-run 20261022-091557_skeleton \
+    --csv manual_kit/answers_gams3-12b.csv --name gams3-12b \
+    --model-label "GaMS3-12B-Instruct (povejmo.si, 2026-10-27)"
+make eval RUN=<printed run id>
+```
+
+The import copies the model-independent contexts (candidates, retrieval, graph
+evidence) from the source run and replaces only the model outputs; the run
+manifest is marked `manual: true`.
+
+**b) UI scraper** - drives a visible browser like a human (selects the model,
+opens a fresh chat per prompt, waits for the reply to stop changing, saves it into
+the answers CSV):
+
+```
+uv run python scripts/scrape_povejmo.py --inspect                      # dump UI structure, sends nothing
+uv run python scripts/scrape_povejmo.py --csv manual_kit/answers_gams3-12b.csv \
+    --model "GaMS3-12B-Instruct" --limit 3                             # pilot
+uv run python scripts/scrape_povejmo.py --csv manual_kit/answers_gams3-12b.csv \
+    --model "GaMS3-12B-Instruct"                                       # the batch (resumable)
+```
+
+Safety: the only file written is the answers CSV (atomic replace, one-time `.bak`
+copy); prompts are only read; failures are screenshotted into
+`manual_kit/scrape_debug/` and the batch stops after three consecutive failures.
+Already-answered rows are skipped, so any run can be resumed; pacing is human-like
+(10 s between prompts) - do not run two scrapers at once.
+
+Caveats: these are observations of a hosted product - the served model version is
+not pinned and latency is not logged, so record the exact UI label and date in
+`--model-label`. Variant A is scored on the answer text (token-F1), B/C/D/oracle
+on the cited sense ID, exactly as in the API runs.
 
 ## Troubleshooting
 

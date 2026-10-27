@@ -360,3 +360,35 @@ the gold OUTSIDE C's first k). The notebooks document this caveat
 (`03_budget.ipynb`). Optional future fix: store the export order on
 COLLOCATES_WITH edges in the loader and reload the graph; only then is
 "D = C + ordering" strictly true.
+
+## D-025 (2026-10-27) - Chat-only GaMS models: manual kit + povejmo.si UI scraper
+
+GaMS (CJVT/FRI) is only served through the chat at povejmo.si; `robots.txt`
+disallows `/api`, and running the weights locally is not practical on this
+machine (no GPU; ~3-10 min per call for the 12B GGUF quants). To keep the
+A/B/C/D/oracle comparison possible for this family, two tools were added:
+
+- **manual kit** (`src/elexai/manual.py`): export the exact prompts of a source
+  run into a CSV + one text file per prompt; import filled answers as a normal
+  run directory. The contexts (shown candidates, retrieval, graph evidence) are
+  model independent, so they are copied from the source run and only the model
+  outputs are replaced; the manifest is marked `manual: true`.
+- **UI scraper** (`src/elexai/scrape_povejmo.py` + `scripts/scrape_povejmo.py`):
+  headful Playwright automation that drives the UI like a human - select the
+  model from the dropdown, open a fresh chat per prompt, paste the prompt, send,
+  wait until the reply stops changing (default 4 s stable in batch runs), save
+  it. Sequential, human-paced (10 s between prompts), resumable (answered rows
+  are skipped), stops after three consecutive failures.
+
+Safety: the only file ever modified is the answers CSV (atomic replace + a
+one-time `.bak` copy); prompts are read-only; debug artifacts (screenshots,
+HTML, an append-only JSONL log) go to a separate folder; nothing is deleted.
+
+Honesty notes: these runs are **product observations** of a hosted service - the
+served model version is not pinned, latency is not logged, and one chat session
+is used. Label each run with the exact UI label + date. Scoring is unchanged:
+variant A is scored on the answer text (token-F1 vs the draft gold answer),
+B/C/D/oracle on the cited DDDS sense id.
+
+Scope: first two models = GaMS3-12B-Instruct and GaMS3-12B-RAG over the
+36-question kit (180 prompts each); 27B/9B and the Lex model come later.

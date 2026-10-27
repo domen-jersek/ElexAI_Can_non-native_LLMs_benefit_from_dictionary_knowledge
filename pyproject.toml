@@ -28,6 +28,7 @@ dev = [
     "nbconvert>=7.17.2",
     "pandas-stubs>=3.0.5.260914",
     "numpy>=2.5.4",
+    "playwright>=1.64.1",
 ]
 
 [build-system]
