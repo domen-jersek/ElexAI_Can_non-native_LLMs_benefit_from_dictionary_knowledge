@@ -202,17 +202,30 @@ def test_validate_answers(tmp_path):
             ["q-003", "C", "SENSE_ID: 11\nODGOVOR: del snovi ali predmeta, ločen od celote"]
         )
         writer.writerow(["q-004", "C", "SENSE_ID: 12"])  # no ODGOVOR
-        writer.writerow(["q-005", "D", "ODGOVOR: pomen brez identifikatorja"])  # no SENSE_ID
+        writer.writerow(["q-005", "D", "ODGOVOR: pomen brez identifikatorja"])  # no SENSE_ID line
         writer.writerow(["q-006", "B", ""])  # empty - not counted
+        # identical text across variants of the SAME question is normal:
+        writer.writerow(
+            ["q-007", "C", "SENSE_ID: 13\nODGOVOR: isti opis pomena, kot v varianti D"]
+        )
+        writer.writerow(
+            ["q-007", "D", "SENSE_ID: 13\nODGOVOR: isti opis pomena, kot v varianti D"]
+        )
+        # explicit refusal - counted, not flagged:
+        writer.writerow(["q-008", "B", "SENSE_ID: none\nODGOVOR: tega pomena ni med možnimi."])
 
     report = validate_answers(csv_path)
-    assert report["n_rows"] == 6
-    assert report["n_filled"] == 5
-    assert report["per_variant"] == {"A": 1, "C": 3, "D": 1}
+    assert report["n_rows"] == 9
+    assert report["n_filled"] == 8
+    assert report["per_variant"] == {"A": 1, "B": 1, "C": 4, "D": 2}
+    assert report["cite_none"] == 1
     problems = [(p["row"], p["problem"]) for p in report["problems"]]
     assert ("q-004 C", "no 'ODGOVOR:' text parsed") in problems
-    assert any(row == "q-005 D" and "no SENSE_ID" in problem for row, problem in problems)
-    assert any("q-002 C, q-003 C" == row and "identical" in problem for row, problem in problems)
+    assert any(row == "q-005 D" and problem == "no SENSE_ID line at all" for row, problem in problems)
+    assert any(
+        "q-002 C, q-003 C" == row and "different questions" in problem
+        for row, problem in problems
+    )
     assert report["n_problems"] == 3
 
     clean = tmp_path / "clean.csv"

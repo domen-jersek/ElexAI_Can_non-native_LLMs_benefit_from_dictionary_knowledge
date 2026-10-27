@@ -17,6 +17,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import re
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -78,9 +79,12 @@ def _read_answers(run_dir: Path) -> list[dict]:
 def validate_answers(csv_path: Path) -> dict:
     """Check a (partially) filled answers CSV before importing it.
 
-    Looks for rows that would silently score as wrong: no ``ODGOVOR:`` text,
-    missing ``SENSE_ID:`` on variants that must cite one, suspicious lengths and
-    identical answer texts in several rows. The raw text is never changed.
+    Looks for rows that would silently score as wrong: no ``ODGOVOR:`` text, a
+    missing ``SENSE_ID:`` line on variants that must cite one, suspicious lengths
+    and identical answer texts in rows of *different* questions (identical texts
+    across variants of the same question are normal - the model may describe the
+    same sense). Explicit ``SENSE_ID: none`` refusals are counted, not flagged.
+    The raw text is never changed.
     """
     from elexai.runner.run import parse_output
 
@@ -89,34 +93,49 @@ def validate_answers(csv_path: Path) -> dict:
 
     per_variant: Counter = Counter()
     problems: list[dict] = []
-    seen_texts: dict[str, list[str]] = {}
+    cite_none = 0
+    seen_texts: dict[str, list[tuple[str, str]]] = {}
     for row in rows:
         raw = (row.get("answer_raw") or "").strip()
         if not raw:
             continue
-        key = f"{row.get('question_id')} {row.get('variant')}"
+        qid = str(row.get("question_id"))
         variant = row.get("variant", "?")
+        key = f"{qid} {variant}"
         per_variant[variant] += 1
         sense_id, answer = parse_output(raw)
         if not answer:
             problems.append({"row": key, "problem": "no 'ODGOVOR:' text parsed"})
         elif len(answer) < 15:
-            problems.append({"row": key, "problem": f"answer text suspiciously short ({len(answer)} chars)"})
+            problems.append(
+                {"row": key, "problem": f"answer text suspiciously short ({len(answer)} chars)"}
+            )
         if len(raw) > 2000:
-            problems.append({"row": key, "problem": f"raw answer suspiciously long ({len(raw)} chars)"})
-        if variant in ("B", "C", "D", "oracle") and sense_id is None:
-            problems.append({"row": key, "problem": "no SENSE_ID parsed (expected for this variant)"})
+            problems.append(
+                {"row": key, "problem": f"raw answer suspiciously long ({len(raw)} chars)"}
+            )
+        if variant in ("B", "C", "D", "oracle"):
+            if not re.search(r"SENSE_ID:", raw, re.IGNORECASE):
+                problems.append({"row": key, "problem": "no SENSE_ID line at all"})
+            elif sense_id is None:
+                cite_none += 1
         if answer:
-            seen_texts.setdefault(answer[:200], []).append(key)
-    for keys in seen_texts.values():
-        if len(keys) > 1:
-            problems.append({"row": ", ".join(keys), "problem": "identical answer text in several rows"})
+            seen_texts.setdefault(answer[:200], []).append((qid, key))
+    for entries in seen_texts.values():
+        if len({qid for qid, _ in entries}) > 1:
+            problems.append(
+                {
+                    "row": ", ".join(k for _, k in entries),
+                    "problem": "identical answer text in rows of different questions",
+                }
+            )
 
     return {
         "csv": str(csv_path),
         "n_rows": len(rows),
         "n_filled": sum(per_variant.values()),
         "per_variant": dict(sorted(per_variant.items())),
+        "cite_none": cite_none,
         "n_problems": len(problems),
         "problems": problems,
     }
