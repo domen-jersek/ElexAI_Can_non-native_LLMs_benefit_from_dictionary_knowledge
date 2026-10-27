@@ -159,7 +159,10 @@ Safety: the only file written is the answers CSV (atomic replace, one-time `.bak
 copy); prompts are only read; failures are screenshotted into
 `manual_kit/scrape_debug/` and the batch stops after three consecutive failures.
 Already-answered rows are skipped, so any run can be resumed; pacing is human-like
-(10 s between prompts) - do not run two scrapers at once.
+(10 s between prompts) - do not run two scrapers at once. A reply is accepted only
+when it carries the required `SENSE_ID`/`ODGOVOR` format (the "Razmišljam..."
+thinking bubble is ignored); a send that does not register is retried and then
+fails fast, leaving the row empty for a later retry.
 
 Caveats: these are observations of a hosted product - the served model version is
 not pinned and latency is not logged, so record the exact UI label and date in

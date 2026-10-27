@@ -84,6 +84,24 @@ def clean_reply(text: str) -> str:
     return text.strip()
 
 
+_PLACEHOLDER_RE = re.compile(r"^[\s.…]*razmi[šs]ljam[\s.…]*$", re.IGNORECASE)
+_ANSWER_FORMAT_RE = re.compile(r"SENSE_ID|ODGOVOR", re.IGNORECASE)
+
+
+def is_placeholder(text: str) -> bool:
+    """True for the UI's 'thinking' bubble (e.g. 'Razmišljam...').
+
+    The RAG model shows this while it works; it can stay unchanged for many
+    seconds, so it must never be mistaken for a finished answer.
+    """
+    return bool(_PLACEHOLDER_RE.match((text or "").strip()))
+
+
+def looks_like_answer(text: str) -> bool:
+    """True when the text carries the required SENSE_ID/ODGOVOR format."""
+    return bool(_ANSWER_FORMAT_RE.search(text or ""))
+
+
 def append_log(debug_dir: Path, record: dict) -> None:
     debug_dir.mkdir(parents=True, exist_ok=True)
     record = {"at": datetime.now(UTC).isoformat(), **record}
@@ -285,13 +303,51 @@ class PovejmoSession:
         raise RuntimeError("chat input not found")
 
     def type_prompt(self, prompt: str) -> None:
+        self.clear_input()
         el = self._input_element()
         el.click(timeout=5000)
         self.page.wait_for_timeout(200)
         self.page.keyboard.insert_text(prompt)
-        self.page.wait_for_timeout(400)
+        self.page.wait_for_timeout(500)
+        typed = re.sub(r"\s+", " ", self._input_text())
+        head = re.sub(r"\s+", " ", prompt.strip())[:40]
+        if head and head not in typed:
+            raise RuntimeError("prompt text did not appear in the input box")
 
-    def send(self) -> None:
+    def _input_text(self) -> str:
+        try:
+            el = self._input_element()
+        except Exception:
+            return ""
+        try:
+            tag = el.evaluate("el => el.tagName.toLowerCase()")
+            if tag == "textarea":
+                return el.input_value() or ""
+            return el.inner_text() or ""
+        except Exception:
+            return ""
+
+    def clear_input(self) -> None:
+        """Make sure a leftover prompt from an earlier attempt cannot pile up."""
+        try:
+            el = self._input_element()
+        except Exception:
+            return
+        try:
+            el.fill("")
+            self.page.wait_for_timeout(150)
+        except Exception:
+            pass
+        if self._input_text().strip():
+            try:
+                el.click(timeout=3000)
+                self.page.keyboard.press("Control+a")
+                self.page.keyboard.press("Delete")
+                self.page.wait_for_timeout(200)
+            except Exception:
+                pass
+
+    def _click_send_button(self) -> bool:
         page = self.page
         for finder in (
             lambda: page.get_by_role("button", name=re.compile(r"po[sš]lji|send", re.IGNORECASE)),
@@ -301,10 +357,49 @@ class PovejmoSession:
             if el:
                 try:
                     el.click(timeout=4000)
-                    return
+                    return True
                 except Exception:
-                    pass
-        page.keyboard.press("Enter")
+                    continue
+        return False
+
+    def send_and_confirm(self, *, attempts: int = 3, settle_s: float = 5.0) -> bool:
+        """Send the prompt and verify the message went out (input box cleared).
+
+        A click that does not register leaves the prompt in the input box; that
+        used to cost a full 240 s wait. Retry with Enter, then fail fast.
+        """
+        for attempt in range(attempts):
+            if attempt == 1:
+                self.page.keyboard.press("Enter")
+            else:
+                self._click_send_button()
+            deadline = time.monotonic() + settle_s
+            while time.monotonic() < deadline:
+                self.page.wait_for_timeout(400)
+                if not self._input_text().strip():
+                    return True
+        return False
+
+    def _scan_candidates(self, locator, *, marker: str, limit: int, min_len: int = 0) -> str:
+        """Newest-first scan of a locator list; skips placeholders and the prompt echo."""
+        try:
+            n = locator.count()
+        except Exception:
+            return ""
+        for i in range(n - 1, max(-1, n - limit - 1), -1):
+            el = locator.nth(i)
+            try:
+                if not el.is_visible():
+                    continue
+                text = clean_reply(el.inner_text())
+            except Exception:
+                continue
+            if len(text) < min_len or is_placeholder(text):
+                continue
+            if marker and marker in text:
+                continue
+            return text
+        return ""
 
     def last_assistant_text(self, prompt_marker: str = "") -> str:
         page = self.page
@@ -315,40 +410,29 @@ class PovejmoSession:
             '[class*="assistant"]',
         ):
             try:
-                el = self._last_visible(page.locator(sel))
+                loc = page.locator(sel)
             except Exception:
-                el = None
-            if el:
-                try:
-                    text = clean_reply(el.inner_text())
-                except Exception:
-                    text = ""
-                if text and (not marker or marker not in text):
-                    return text
+                continue
+            text = self._scan_candidates(loc, marker=marker, limit=6)
+            if text:
+                return text
         # generic fallback: message-like blocks, newest first
         try:
             loc = page.locator(
                 '[class*="message"], [class*="bubble"], [class*="prose"], [class*="markdown"]'
             )
-            n = loc.count()
         except Exception:
-            n = 0
-        for i in range(n - 1, max(-1, n - 25), -1):
-            el = loc.nth(i)
-            try:
-                if not el.is_visible():
-                    continue
-                text = clean_reply(el.inner_text())
-            except Exception:
-                continue
-            if len(text) < 10:
-                continue
-            if marker and marker in text:
-                continue
-            return text
-        return ""
+            return ""
+        return self._scan_candidates(loc, marker=marker, limit=25, min_len=10)
 
     def wait_for_reply(self, prompt_marker: str, *, timeout_s: float, stable_s: float) -> str:
+        """Wait until a formatted reply stops changing.
+
+        Only text carrying the required ``SENSE_ID``/``ODGOVOR`` format counts:
+        the 'Razmišljam...' bubble (stable for many seconds while the RAG model
+        thinks) and partial answers are ignored, so the stability clock starts
+        on real answer text only.
+        """
         deadline = time.monotonic() + timeout_s
         last_text = ""
         last_change = time.monotonic()
@@ -358,13 +442,18 @@ class PovejmoSession:
                 text = self.last_assistant_text(prompt_marker)
             except Exception:
                 text = ""
+            if text and not looks_like_answer(text):
+                text = ""  # thinking placeholder or answer not started yet
             if text and text != last_text:
                 last_text = text
                 last_change = time.monotonic()
             if last_text and (time.monotonic() - last_change) >= stable_s:
                 return last_text
-        # never save a possibly truncated reply - the row stays empty and is retried later
-        raise TimeoutError(f"reply did not stabilise within {timeout_s:.0f}s (partial kept for debug only)")
+        # never save a placeholder or a possibly truncated reply - the row stays
+        # empty and is retried later
+        raise TimeoutError(
+            f"no stable SENSE_ID/ODGOVOR reply within {timeout_s:.0f}s (debug kept)"
+        )
 
     # -- inspection (no prompts are sent) ------------------------------------
 
@@ -513,7 +602,8 @@ def run_batch(
                     print("    dry-run: prompt typed, NOT sent")
                     stats.processed += 1
                     break
-                session.send()
+                if not session.send_and_confirm():
+                    raise RuntimeError("message was not sent (input box did not clear)")
                 reply = session.wait_for_reply(prompt, timeout_s=timeout_s, stable_s=stable_s)
                 if not reply.strip():
                     raise RuntimeError("empty reply")

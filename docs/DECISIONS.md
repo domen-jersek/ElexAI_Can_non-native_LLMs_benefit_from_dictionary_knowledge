@@ -392,3 +392,32 @@ B/C/D/oracle on the cited DDDS sense id.
 
 Scope: first two models = GaMS3-12B-Instruct and GaMS3-12B-RAG over the
 36-question kit (180 prompts each); 27B/9B and the Lex model come later.
+
+## D-026 (2026-10-27) - Scraper hardening: thinking placeholders and send confirmation
+
+The first GaMS3-12B-RAG pass exposed two failure modes that the Instruct model
+had not shown:
+
+- the RAG model displays a stable "Razmišljam..." bubble while it works; the
+  stability rule accepted it as the answer, so 103 rows were saved as
+  placeholders. They are kept for the record
+  (`manual_kit/answers_gams3-12b-rag_run1_placeholder.csv`) and the working CSV
+  was reset from its pristine `.bak` (nothing deleted);
+- a "Pošlji" click sometimes does not register (there is no stop button to use
+  as a signal); the prompt stayed in the input box and the run waited the full
+  240 s timeout.
+
+Fixes (all in `src/elexai/scrape_povejmo.py`, with tests):
+
+- a reply is accepted only when the text carries the required
+  `SENSE_ID`/`ODGOVOR` format and is not the placeholder (`is_placeholder`,
+  `looks_like_answer`); the stability clock starts on real answer text only -
+  otherwise the row stays empty and is retried later;
+- `send_and_confirm()` clicks "Pošlji", verifies the input box got cleared and
+  retries with Enter; a non-registered send fails in ~15 s instead of 240 s;
+- `type_prompt()` clears the input first (a leftover prompt cannot pile up) and
+  verifies the text landed.
+
+Consequence: a partially filled CSV can contain junk from an earlier, buggy
+pass - always run `scripts/import_manual_answers.py --check` before importing
+(it flags rows without `SENSE_ID`/`ODGOVOR`).

@@ -8,7 +8,9 @@ import pytest
 
 from elexai.scrape_povejmo import (
     clean_reply,
+    is_placeholder,
     load_answers,
+    looks_like_answer,
     next_unanswered_index,
     save_answers,
 )
@@ -87,3 +89,22 @@ def test_load_rejects_missing_columns(tmp_path):
 def test_clean_reply():
     assert clean_reply("  a\r\n\r\n\r\nb  ") == "a\n\nb"
     assert clean_reply("") == ""
+
+
+def test_is_placeholder():
+    assert is_placeholder("Razmišljam...")
+    assert is_placeholder(" razmisljam …")
+    assert is_placeholder("RAZMIŠLJAM")
+    assert is_placeholder("Razmišljam . . .")
+    assert not is_placeholder("")
+    assert not is_placeholder("SENSE_ID: none")
+    assert not is_placeholder("Razmišljam o pomenu besede kos.")
+
+
+def test_looks_like_answer():
+    assert looks_like_answer("SENSE_ID: 16283272\nODGOVOR: del celote")
+    assert looks_like_answer("SENSE_ID: none ODGOVOR: beseda pomeni kos kruha")
+    assert looks_like_answer("ODGOVOR: brez identifikatorja")
+    assert not looks_like_answer("Razmišljam...")
+    assert not looks_like_answer("")
+    assert not looks_like_answer("Beseda kos pomeni del kruha.")
