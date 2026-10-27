@@ -21,6 +21,10 @@ build/
 /runs/
 /.cache/
 
+# --- Generated working folders (local review / manual run kits) ---
+/manual_kit/
+/review/
+
 # --- OS / editors ---
 .DS_Store
 Thumbs.db
