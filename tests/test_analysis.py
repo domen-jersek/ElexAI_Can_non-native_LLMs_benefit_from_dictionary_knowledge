@@ -97,6 +97,7 @@ def _write_run(tmp_path: Path) -> Path:
                 "variants": ["C", "D"],
                 "structured": {"max_senses": 3},
                 "questions_path": "questions.jsonl",
+                "llm": {"model": "test-model"},
             }
         ),
         encoding="utf-8",
@@ -180,6 +181,7 @@ def test_accuracy_and_coverage_frames(tmp_path):
     assert set(acc["variant"]) == {"C", "D"}
     c = acc[acc["variant"] == "C"].iloc[0]
     assert c["cap"] == 3
+    assert c["model"] == "test-model"
     assert c["citation_accuracy"] == 0.333
     assert c["citation_accuracy_excl_trick"] == 0.5
     assert c["coverage_at_k"] == {"1": 0.333, "2": 0.667}

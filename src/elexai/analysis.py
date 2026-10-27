@@ -324,6 +324,7 @@ def accuracy_frame(run_ids: list[str], runs_dir: Path = RUNS_DIR) -> pd.DataFram
                 {
                     "run_id": run_id,
                     "config": cfg.get("name", "?"),
+                    "model": (cfg.get("llm") or {}).get("model"),
                     "cap": int(cfg.get("structured", {}).get("max_senses", 0)),
                     "variant": variant,
                     "n": m.get("n"),
