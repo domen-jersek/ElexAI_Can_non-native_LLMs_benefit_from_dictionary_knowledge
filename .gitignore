@@ -21,6 +21,9 @@ build/
 /runs/
 /.cache/
 
+# --- Local model files (downloaded weights / GGUF; large) ---
+/models/
+
 # --- Generated working folders (local review / manual run kits) ---
 /manual_kit/
 /review/

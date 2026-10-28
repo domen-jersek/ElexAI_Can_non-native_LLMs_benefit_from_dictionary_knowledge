@@ -1,0 +1,54 @@
+# Control for configs/gams_lex.yaml: the *plain* GaMS3-12B-Instruct model at the
+# SAME Q4_K_M quantization, served locally by llama-server.
+#
+# Why: comparing a Q4 Lex run against the full-precision povejmo.si run would
+# mix two effects (model and quantization). Comparing Lex-Q4 against
+# Instruct-Q4 isolates the Lex continual-pretraining effect; comparing
+# Instruct-Q4 (local) against the povejmo.si Instruct run estimates the
+# quantization/serving effect. Details: docs/LOCAL_MODEL.md.
+#
+#   llama-server -m models/instruct-q4_k_m.gguf -c 8192 -t 4 --jinja --port 8080
+#   uv run python -m elexai.runner configs/gams_instruct_q4.yaml
+name: gams-instruct-q4
+description: >
+  GaMS3-12B-Instruct (Q4_K_M GGUF, local llama-server) - the paired control for
+  the quantized Lex run; same questions/retrieval/graph as configs/skeleton.yaml.
+variants: [A, B, C, D, oracle]
+questions_path: data/questions/questions.jsonl
+llm:
+  provider: llama.cpp
+  base_url: http://127.0.0.1:8080/v1
+  model: gams3-12b-instruct-q4_k_m
+  api_key_env: LOCAL_LLM_KEY
+  temperature: 0.0
+  seed: 0
+  max_tokens: 800
+  timeout_s: 900
+embedder:
+  name: bge-m3
+  hf_id: BAAI/bge-m3
+  revision: 5617a9f61b028005a4858fdac845db406aefb181 # pinned commit
+  batch_size: 16
+  normalize: true
+retrieval:
+  k: 3
+  sweep_k: [1, 3, 5, 10]
+  metric: cosine
+structured:
+  max_senses: 12
+  synonyms_per_sense: 5
+  max_dependencies: 8
+  oracle_max_candidates: 5
+graph:
+  uri_env: NEO4J_URI
+  user_env: NEO4J_USER
+  password_env: NEO4J_PASSWORD
+  max_candidates: 12
+  synonyms_shown: 5
+  collocations_shown: 8
+  weight_definition: 1.0
+  weight_collocation: 2.0
+  weight_synonym: 2.0
+eval:
+  answer_f1_threshold: 0.6
+seed: 0

@@ -169,6 +169,15 @@ not pinned and latency is not logged, so record the exact UI label and date in
 `--model-label`. Variant A is scored on the answer text (token-F1), B/C/D/oracle
 on the cited sense ID, exactly as in the API runs.
 
+## 7. Local models (llama.cpp, no API)
+
+The Lex model (`cjvt/GaMS3-12B-Instruct-Lex`, continually pretrained on DDD) and
+its paired control (plain `GaMS3-12B-Instruct` at the same quantization) can be
+run on this machine through llama.cpp and served over the same OpenAI-compatible
+interface the pipeline uses. Setup, commands, time/disk estimates and the
+interpretation caveats: **`docs/LOCAL_MODEL.md`**
+(configs: `configs/gams_lex.yaml`, `configs/gams_instruct_q4.yaml`).
+
 ## Troubleshooting
 
 - `environment variable 'OPENROUTER_API_KEY' is not set` -> add it to `.env`.

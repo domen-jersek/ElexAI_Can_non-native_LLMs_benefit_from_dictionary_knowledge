@@ -43,3 +43,18 @@ def test_graph_variant_allowed():
     cfg = ExperimentConfig(name="x", variants=["D"])
     assert cfg.variants == ["D"]
     assert cfg.graph.max_candidates == 12
+
+
+def test_local_model_configs_load():
+    """The llama.cpp configs (Lex + its Instruct control) must stay valid."""
+    for name, model in [
+        ("gams_lex.yaml", "gams3-12b-instruct-lex-q4_k_m"),
+        ("gams_instruct_q4.yaml", "gams3-12b-instruct-q4_k_m"),
+    ]:
+        cfg = load_config(REPO_ROOT / "configs" / name)
+        assert cfg.llm.base_url == "http://127.0.0.1:8080/v1"
+        assert cfg.llm.model == model
+        assert cfg.llm.api_key_env == "LOCAL_LLM_KEY"
+        assert cfg.llm.temperature == 0.0
+        assert cfg.llm.timeout_s >= 600  # CPU inference is slow
+        assert set(cfg.variants) == {"A", "B", "C", "D", "oracle"}
