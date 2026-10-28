@@ -421,3 +421,33 @@ Fixes (all in `src/elexai/scrape_povejmo.py`, with tests):
 Consequence: a partially filled CSV can contain junk from an earlier, buggy
 pass - always run `scripts/import_manual_answers.py --check` before importing
 (it flags rows without `SENSE_ID`/`ODGOVOR`).
+
+## D-027 (2026-10-28) - Repeatability of the chat-UI runs: noise floor ~1 question in 12
+
+Before comparing models we measured how repeatable the chat-UI answers are: the
+same 12 prompts (q-001, q-011, q-016, q-024, q-025, q-029; variants C and D)
+were re-sent to both GaMS models a day after the original runs
+(`manual_kit/answers_repeat*.csv`, compared against
+`manual_kit/answers_gams3-12b*.csv`):
+
+- **GaMS3-12B-Instruct**: the cited sense id was unchanged in **10/12** cases;
+  both flips are on q-024 (*pero*, pen vs clock spring), in both directions.
+  No answer text was byte-identical (the model paraphrases).
+- **GaMS3-12B-RAG**: **12/12** unchanged; 3/12 texts byte-identical.
+
+Interpretation rule adopted for the whole project: on the 36-question set, a
+difference of one or two questions (3-6 pp) between models or variants is
+within the noise of a single chat run; only larger gaps are interpreted. This
+settles one question retroactively: the Instruct model's D deficit
+(0.806 vs 0.861) is one unstable question (q-024), **not** a graph-ordering
+effect - consistent with the payoff rule (no cue -> no re-ranking, no gain).
+
+Consequences:
+
+- cross-model comparisons use `scripts/compare_runs.py` and always carry this
+  caveat; the notebook `06_gams_cross_model.ipynb` shows the measurement;
+- variant A (text-only, scored by token F1) is noisier than the citation
+  metrics, because the text is always paraphrased;
+- if a GaMS difference of one or two questions ever becomes decision-relevant,
+  re-send the affected prompts: the scraper resumes and the repeat kit
+  (`manual_kit/answers_repeat*.csv`) is the template.

@@ -13,6 +13,7 @@ artifacts under `runs/` and the committed question set - no LLM calls are made.
 | 3 | `03_when_does_the_graph_pay_off.ipynb` | The payoff rule (buried answer x lexical cue), validated on every question; expected gain vs measured gain; a decision checklist. |
 | 4 | `04_relations.ipynb` | The second question type: explicit links, the retrieval trap, and the honest null result. |
 | 5 | `05_cross_cutting.ipynb` | Citation taxonomy, the free-text metric for variant A, the difficulty profile, statistics (McNemar, bootstrap), limits and next steps. |
+| 6 | `06_gams_cross_model.ipynb` | Three models on the same questions: the API model vs the two Slovene GaMS 12B chat models (Instruct and its "-RAG" sibling), their error profiles, the figurative-sense failures, and the measured repeatability (noise floor ~1 question in 12). |
 
 **How to run / regenerate**
 
@@ -22,8 +23,10 @@ uv run jupyter nbconvert --to notebook --execute --inplace notebooks/0*.ipynb
 ```
 
 The notebooks discover the latest run per config name (`skeleton`, `cap1`,
-`cap2`, `cap3`); the latency figure pools the historical 22-question runs.
-Figures are also saved to `notebooks/figures/`.
+`cap2`, `cap3`, `gams3-12b`, `gams3-12b-rag`); the latency figure pools the
+historical 22-question runs. Figures are also saved to `notebooks/figures/`.
+The two GaMS runs are **manual (chat-UI) runs** - single samples of a hosted
+product, not reproducible API calls; notebook 6 measures their noise floor.
 
 **Data sources**
 

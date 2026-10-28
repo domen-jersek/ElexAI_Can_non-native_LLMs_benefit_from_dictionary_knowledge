@@ -330,6 +330,7 @@ def accuracy_frame(run_ids: list[str], runs_dir: Path = RUNS_DIR) -> pd.DataFram
                     "n": m.get("n"),
                     "citation_accuracy": m.get("citation_accuracy"),
                     "citation_accuracy_excl_trick": excl.get("citation_accuracy"),
+                    "answer_f1_mean": m.get("answer_f1_mean"),
                     "retrieval_errors": m.get("retrieval_errors"),
                     "composition_errors": m.get("composition_errors"),
                     "excl_retrieval_errors": excl.get("retrieval_errors"),

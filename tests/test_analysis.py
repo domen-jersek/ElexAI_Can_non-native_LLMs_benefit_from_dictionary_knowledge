@@ -123,6 +123,7 @@ def _write_run(tmp_path: Path) -> Path:
                     "C": {
                         "n": 3,
                         "citation_accuracy": 0.333,
+                        "answer_f1_mean": 0.42,
                         "coverage_at_k": {"1": 0.333, "2": 0.667},
                         "excl_trick": {"n": 2, "citation_accuracy": 0.5, "coverage_at_k": {"1": 0.5}},
                     },
@@ -183,6 +184,7 @@ def test_accuracy_and_coverage_frames(tmp_path):
     assert c["cap"] == 3
     assert c["model"] == "test-model"
     assert c["citation_accuracy"] == 0.333
+    assert c["answer_f1_mean"] == 0.42
     assert c["citation_accuracy_excl_trick"] == 0.5
     assert c["coverage_at_k"] == {"1": 0.333, "2": 0.667}
 
