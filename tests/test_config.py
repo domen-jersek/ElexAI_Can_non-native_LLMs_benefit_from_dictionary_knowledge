@@ -58,3 +58,13 @@ def test_local_model_configs_load():
         assert cfg.llm.temperature == 0.0
         assert cfg.llm.timeout_s >= 600  # CPU inference is slow
         assert set(cfg.variants) == {"A", "B", "C", "D", "oracle"}
+
+
+def test_every_shipped_config_loads():
+    """Every configs/*.yaml must validate (a typo in any file breaks a run)."""
+    configs = sorted((REPO_ROOT / "configs").glob("*.yaml"))
+    assert configs, "no configs found"
+    for path in configs:
+        cfg = load_config(path)
+        assert cfg.name
+        assert cfg.llm.model

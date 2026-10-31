@@ -451,3 +451,34 @@ Consequences:
 - if a GaMS difference of one or two questions ever becomes decision-relevant,
   re-send the affected prompts: the scraper resumes and the repeat kit
   (`manual_kit/answers_repeat*.csv`) is the template.
+
+## D-028 (2026-10-31) - Gemini 4 Argon added to the model comparison (Klemen's request)
+
+At the lexicographer's request ("Gemini is reportedly stronger in languages")
+the full 36-question kit was run with `google/gemini-4-argon` (OpenRouter,
+temperature 0, cached) - same prompts and contexts as every other run
+(`configs/gemini.yaml`, run `20261031-130253_gemini4-argon`).
+
+Citation accuracy (all 36 / trick items excluded):
+
+| model | B | C | D | oracle |
+|---|---|---|---|---|
+| gpt-6-luna (base API) | 0.306 | 0.944 / 1.000 | 0.944 / 1.000 | 0.944 / 1.000 |
+| gemini-4-argon | 0.306 | **0.972** / 1.000 | **0.972** / 1.000 | 0.944 / 1.000 |
+| GaMS3-12B-Instruct | 0.306 | 0.861 / 0.882 | 0.806 / 0.853 | 0.861 / 0.882 |
+| GaMS3-12B-RAG | 0.250 | 0.833 / 0.853 | 0.806 / 0.824 | 0.806 / 0.853 |
+
+Findings:
+
+- Gemini is the strongest model on the structured variants: it is the only
+  model that resolves the `vlak` trick item (q-005) correctly in C and D - the
+  compound-sense intrusion that defeats every other model (and even its own
+  oracle pass, where the shorter candidate list flips it back).
+- On non-trick questions both API models are at ceiling (1.000); the gap to the
+  GaMS models (0.85-0.88) is unchanged - the bottleneck for the small Slovene
+  models is figurative/idiomatic sense recognition, not dictionary access.
+- Variant B is identical for luna and Gemini (0.306; the same 22/36 retrieval
+  misses): when the retriever fails, no model recovers. A better retriever, not
+  a better model, is what moves B. (Gemini's free-text answers are shorter,
+  hence its lower token-F1 on A/B - a metric caveat, not a capability signal.)
+- Notebook 06 (`notebooks/06_model_comparison.ipynb`) now covers all four models.
