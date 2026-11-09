@@ -1,0 +1,53 @@
+# GaMS-9B-Instruct-Nemotron via the CJVT API (https://gams-host.cjvt.si/v1).
+#
+# PRIMARY comparison regime (docs/DECISIONS.md D-029): cap = 3 - the regime
+# where C (dictionary order) and D (graph order) actually differ. Other regimes
+# via the runner CLI (recorded in the run name and config):
+#   --cap 12 ceiling reference | --cap 1 / --cap 2 tighter budgets
+#   --b-lemma variant B restricted to the target lemma's senses
+#
+# The API key goes into .env as GAMS_API_KEY. This model does NOT support a
+# system prompt - the pipeline sends a single user message, so it works as-is.
+name: gams-9b-api
+description: >
+  GaMS-9B-Instruct-Nemotron (CJVT API, temperature 0) with a candidate cap of 3:
+  variant C shows the first 3 senses of the lemma in dictionary order, variant D
+  the top 3 by graph neighborhood match, oracle keeps gold + neighbours.
+variants: [A, B, C, D, oracle]
+questions_path: data/questions/questions.jsonl
+llm:
+  provider: cjvt
+  base_url: https://gams-host.cjvt.si/v1
+  model: GaMS-9B-Instruct-Nemotron
+  api_key_env: GAMS_API_KEY
+  temperature: 0.0
+  max_tokens: 800
+  timeout_s: 300
+embedder:
+  name: bge-m3
+  hf_id: BAAI/bge-m3
+  revision: 5617a9f61b028005a4858fdac845db406aefb181 # pinned commit
+  batch_size: 16
+  normalize: true
+retrieval:
+  k: 3
+  sweep_k: [1, 3, 5, 10]
+  metric: cosine
+structured:
+  max_senses: 3
+  synonyms_per_sense: 5
+  max_dependencies: 8
+  oracle_max_candidates: 5
+graph:
+  uri_env: NEO4J_URI
+  user_env: NEO4J_USER
+  password_env: NEO4J_PASSWORD
+  max_candidates: 3 # same cap as structured.max_senses (fair C-vs-D comparison)
+  synonyms_shown: 5
+  collocations_shown: 8
+  weight_definition: 1.0
+  weight_collocation: 2.0
+  weight_synonym: 2.0
+eval:
+  answer_f1_threshold: 0.6
+seed: 0

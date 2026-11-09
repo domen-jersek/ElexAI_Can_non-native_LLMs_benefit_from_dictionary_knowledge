@@ -123,3 +123,8 @@ def test_vector_index_roundtrip(tmp_path):
     results = retriever.search(chunks[1].embed_text(), top_k=2)
     assert results[0][0] == "2"  # exact match ranks first
     assert len(results) == 2
+
+    # lemma-scoped search (variant B with retrieval.restrict_to_lemma)
+    scoped = retriever.search_within(chunks[1].embed_text(), top_k=1, allowed_ids=["1"])
+    assert scoped == [("1", scoped[0][1])]
+    assert retriever.search_within(chunks[1].embed_text(), top_k=1, allowed_ids=[]) == []

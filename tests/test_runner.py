@@ -22,6 +22,12 @@ class FakeVector:
     def search(self, query: str, top_k: int):
         return [("10", 0.9), ("11", 0.8), ("20", 0.7)][:top_k]
 
+    def search_within(self, query: str, top_k: int, allowed_ids, *, over_fetch: int = 5000):
+        allowed = set(allowed_ids)
+        return [
+            (sid, score) for sid, score in self.search(query, over_fetch) if sid in allowed
+        ][:top_k]
+
 
 def _question(qid: str, lemma: str, gold: str, answer: str) -> dict:
     return {
@@ -251,3 +257,54 @@ def test_runner_relation_question_dry_run(tmp_path, monkeypatch):
     assert "Graf:" in by_variant["oracle"]["prompt"]
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["template_versions"] == ["rel-v1"]
+
+def test_runner_b_lemma_restricts_retrieval(tmp_path, monkeypatch):
+    """--b-lemma: variant B only sees the target lemma's senses (sense questions)."""
+    from elexai.config import RetrievalConfig
+
+    monkeypatch.setattr(runner_mod, "SENSES_EXPORT", tmp_path / "no_senses.jsonl")
+    monkeypatch.setattr(runner_mod, "LEXICAL_CORE", tmp_path / "no_core.jsonl")
+    qdir = tmp_path / "data" / "questions"
+    qdir.mkdir(parents=True)
+    questions = [
+        _question("q1", "kos", "10", "del celote"),
+        _question("q2", "list", "20", "del rastline"),
+    ]
+    (qdir / "questions.jsonl").write_text(
+        "\n".join(json.dumps(q, ensure_ascii=False) for q in questions) + "\n",
+        encoding="utf-8",
+    )
+    cfg = ExperimentConfig(
+        name="test-blemma",
+        questions_path=Path("data/questions/questions.jsonl"),
+        llm=LlmConfig(),
+        embedder=EmbedderConfig(name="fake", hf_id="fake", revision="x"),
+        retrieval=RetrievalConfig(restrict_to_lemma=True),
+        runs_dir=Path("runs"),
+    )
+    run_dir = runner_mod.run_experiment(
+        cfg, root=tmp_path, dry_run=True, variants=["B"], chunks=CHUNKS, vector=FakeVector()
+    )
+    rows = [
+        json.loads(line)
+        for line in (run_dir / "answers.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    by_q = {r["question_id"]: r for r in rows}
+    assert by_q["q1"]["context_kind"] == "text_rag_lemma"
+    assert set(by_q["q1"]["shown_sense_ids"]) <= {"10", "11"}
+    assert all(x["sense_id"] in {"10", "11"} for x in by_q["q1"]["retrieved"])
+    assert by_q["q2"]["context_kind"] == "text_rag_lemma"
+    assert by_q["q2"]["shown_sense_ids"] == ["20"]
+
+
+def test_apply_cli_overrides():
+    cfg = ExperimentConfig(name="gams-test")
+    out = runner_mod.apply_cli_overrides(cfg, cap=1, b_lemma=True)
+    assert out.name == "gams-test-cap1-blemma"
+    assert out.structured.max_senses == 1
+    assert out.graph.max_candidates == 1
+    assert out.retrieval.restrict_to_lemma is True
+    # suffix must not be duplicated on a repeated application
+    again = runner_mod.apply_cli_overrides(out, cap=1, b_lemma=True)
+    assert again.name == "gams-test-cap1-blemma"
+    assert runner_mod.apply_cli_overrides(cfg).name == "gams-test"

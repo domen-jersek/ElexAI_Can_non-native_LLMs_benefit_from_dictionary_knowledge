@@ -178,6 +178,38 @@ interface the pipeline uses. Setup, commands, time/disk estimates and the
 interpretation caveats: **`docs/LOCAL_MODEL.md`**
 (configs: `configs/gams_lex.yaml`, `configs/gams_instruct_q4.yaml`).
 
+## 8. GaMS models via the CJVT API
+
+CJVT provides an OpenAI-compatible endpoint for the GaMS family. Put the key in
+`.env` (never in a config):
+
+```
+GAMS_API_KEY=...
+```
+
+Models and configs (all default to the **primary regime, cap = 3**, per
+`docs/DECISIONS.md` D-029):
+
+| model | config |
+|---|---|
+| `GaMS3-12B-Instruct` | `configs/gams3-12b-api.yaml` |
+| `GaMS2-27B-Instruct` | `configs/gams2-27b-api.yaml` |
+| `GaMS-9B-Instruct-Nemotron` | `configs/gams-9b-api.yaml` |
+
+```
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --limit 1   # smoke test (5 calls)
+uv run python -m elexai.runner configs/gams3-12b-api.yaml             # cap 3 (primary)
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --cap 1     # stress budget
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --cap 12    # ceiling reference
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --b-lemma   # B scoped to the lemma
+uv run python scripts/evaluate.py --last
+```
+
+Notes: the non-GaMS3 models do not support a system prompt - the pipeline sends
+a single user message, so all of them work as-is. `--cap N` sets the same cap for
+C and D; `--b-lemma` restricts variant B to the target lemma's senses. Both are
+recorded in the run name and the resolved config.
+
 ## Troubleshooting
 
 - `environment variable 'OPENROUTER_API_KEY' is not set` -> add it to `.env`.

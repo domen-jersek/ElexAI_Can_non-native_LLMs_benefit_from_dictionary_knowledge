@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
@@ -130,3 +130,24 @@ class VectorRetriever:
             if i >= 0:
                 out.append((self.ids[int(i)], float(score)))
         return out
+
+    def search_within(
+        self,
+        query: str,
+        top_k: int,
+        allowed_ids: Collection[str],
+        *,
+        over_fetch: int = 5000,
+    ) -> list[tuple[str, float]]:
+        """Top-k restricted to ``allowed_ids`` (lemma-scoped variant B).
+
+        Over-fetches from the flat index and then filters - exact and
+        deterministic for the subset as long as at least ``top_k`` of its
+        members rank inside the over-fetch window (5000 of 131k chunks by
+        default, still a few milliseconds on a flat index).
+        """
+        allowed = set(allowed_ids)
+        if not allowed:
+            return []
+        n = min(max(over_fetch, top_k), len(self.ids))
+        return [(sid, score) for sid, score in self.search(query, n) if sid in allowed][:top_k]

@@ -127,6 +127,14 @@ def build_manifest(
     }
 
 
+def _lemma_sense_ids(chunk_by_id: dict[str, SenseChunk]) -> dict[str, list[str]]:
+    """Lemma (lowercase) -> its sense ids, for the lemma-scoped variant B."""
+    out: dict[str, list[str]] = {}
+    for sense_id, chunk in chunk_by_id.items():
+        out.setdefault(chunk.lemma.lower(), []).append(sense_id)
+    return out
+
+
 def _context_for_variant(
     variant: str,
     question: Question,
@@ -136,6 +144,7 @@ def _context_for_variant(
     vector: VectorRetriever | None,
     graph: GraphRetriever | None,
     chunk_by_id: dict[str, SenseChunk],
+    lemma_ids: dict[str, list[str]] | None = None,
 ) -> tuple[str | None, dict]:
     """Return (context text, record fields) for one variant."""
     is_relation = question.question_type == "relation"
@@ -146,11 +155,17 @@ def _context_for_variant(
         top_k = max([cfg.retrieval.k, *cfg.retrieval.sweep_k])
         # sense questions search with the sentence; relation questions with the task text
         query = question.question if is_relation else question.context_sentence
-        results = vector.search(query, top_k)
+        allowed = None
+        if cfg.retrieval.restrict_to_lemma and not is_relation:
+            allowed = (lemma_ids or {}).get(question.lemma.lower())
+        if allowed:
+            results = vector.search_within(query, top_k, allowed)
+        else:
+            results = vector.search(query, top_k)
         shown = [sid for sid, _ in results[: cfg.retrieval.k]]
         text = "\n\n".join(chunk_by_id[sid].block() for sid in shown)
         return text, {
-            "context_kind": "text_rag",
+            "context_kind": "text_rag_lemma" if allowed else "text_rag",
             "shown_sense_ids": shown,
             "retrieved": [{"sense_id": sid, "score": score} for sid, score in results],
         }
@@ -267,6 +282,7 @@ def run_experiment(
     if chunks is None:
         chunks = load_chunks(LEXICAL_CORE)
     chunk_by_id = {c.sense_id: c for c in chunks}
+    lemma_ids = _lemma_sense_ids(chunk_by_id)
     structured = StructuredRetriever(
         chunks,
         max_senses=cfg.structured.max_senses,
@@ -348,6 +364,7 @@ def run_experiment(
                     vector=vector,
                     graph=graph_retriever,
                     chunk_by_id=chunk_by_id,
+                    lemma_ids=lemma_ids,
                 )
                 prompt = render(question, context)
                 record: dict = {
@@ -419,15 +436,59 @@ def run_experiment(
     return run_dir
 
 
+def apply_cli_overrides(
+    cfg: ExperimentConfig, *, cap: int | None = None, b_lemma: bool = False
+) -> ExperimentConfig:
+    """Apply regime overrides from the CLI and mark them in the run name.
+
+    ``cap`` sets the SAME candidate cap for C (``structured.max_senses``) and D
+    (``graph.max_candidates``) - a smaller cap is the regime where the two
+    methods actually differ (docs/DECISIONS.md D-029). ``b_lemma`` restricts
+    variant B to the target lemma's senses. Both are recorded in the run's
+    resolved config; the run name gets a ``-capN`` / ``-blemma`` suffix so runs
+    stay self-documenting.
+    """
+    suffix = ""
+    if cap is not None:
+        cfg = cfg.model_copy(
+            update={
+                "structured": cfg.structured.model_copy(update={"max_senses": cap}),
+                "graph": cfg.graph.model_copy(update={"max_candidates": cap}),
+            }
+        )
+        suffix += f"-cap{cap}"
+    if b_lemma:
+        cfg = cfg.model_copy(
+            update={
+                "retrieval": cfg.retrieval.model_copy(update={"restrict_to_lemma": True})
+            }
+        )
+        suffix += "-blemma"
+    if suffix and not cfg.name.endswith(suffix):
+        cfg = cfg.model_copy(update={"name": cfg.name + suffix})
+    return cfg
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("config", type=Path, help="experiment YAML (e.g. configs/skeleton.yaml)")
     ap.add_argument("--limit", type=int, default=None, help="only the first N questions (dev)")
     ap.add_argument("--dry-run", action="store_true", help="use the deterministic stub LLM")
     ap.add_argument("--variants", nargs="*", default=None, help="override variants (A B C oracle)")
+    ap.add_argument(
+        "--cap",
+        type=int,
+        default=None,
+        help="candidate cap for C and D together (small cap = the regime where they differ)",
+    )
+    ap.add_argument(
+        "--b-lemma",
+        action="store_true",
+        help="variant B searches only the target lemma's senses (sense questions)",
+    )
     args = ap.parse_args()
 
-    cfg = load_config(args.config)
+    cfg = apply_cli_overrides(load_config(args.config), cap=args.cap, b_lemma=args.b_lemma)
     run_dir = run_experiment(
         cfg, limit=args.limit, dry_run=args.dry_run, variants=args.variants
     )

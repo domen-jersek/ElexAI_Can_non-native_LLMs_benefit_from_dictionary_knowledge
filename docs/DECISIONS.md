@@ -482,3 +482,49 @@ Findings:
   a better model, is what moves B. (Gemini's free-text answers are shorter,
   hence its lower token-F1 on A/B - a metric caveat, not a capability signal.)
 - Notebook 06 (`notebooks/06_model_comparison.ipynb`) now covers all four models.
+
+## D-029 (2026-11-09) - GaMS via the CJVT API; the primary regime is a SMALL candidate cap
+
+CJVT gave us API access to the GaMS family (`https://gams-host.cjvt.si/v1`, key
+in `.env` as `GAMS_API_KEY`): `GaMS3-12B-Instruct`, `GaMS2-27B-Instruct`,
+`GaMS-9B-Instruct-Nemotron`. The pipeline is OpenAI-compatible, so this is a
+config change only (`configs/gams3-12b-api.yaml`, `configs/gams2-27b-api.yaml`,
+`configs/gams-9b-api.yaml`).
+
+Why it matters:
+
+- the earlier GaMS numbers came from driving the povejmo.si chat (manual runs):
+  single samples, no latency, ~8 % id flips on repeat (D-027). Through the API
+  the same models run deterministically (temperature 0, cache, latency logged)
+  and become directly comparable with the other models;
+- the family gives a **within-family size curve** (9B / 12B / 27B);
+- `GaMS3-12B-Instruct` was also measured through the UI, so the API run is a
+  cross-check of the UI pipeline (same model, different serving path).
+
+**Methodological change (requested by the project lead).** Results where the
+candidate list is large enough that C and D both saturate carry no information
+about the difference between the methods. From now on:
+
+- the **primary regime is a small candidate cap: `cap = 3`** (the value in the
+  GaMS-API configs); `cap = 1` and `cap = 2` are the stress/curve regimes;
+- the full list (`cap = 12`) is a **ceiling reference only** and must be labelled
+  as such (C equals D there by construction);
+- every reported result carries the candidate cap and coverage@k, so the reader
+  sees which regime it came from;
+- the cap must always be applied to BOTH methods (`structured.max_senses` and
+  `graph.max_candidates`); the runner's `--cap` flag sets both.
+
+CLI (regime recorded in the run name and the resolved config):
+
+```
+uv run python -m elexai.runner configs/gams3-12b-api.yaml            # cap 3 (primary)
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --cap 1    # stress
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --cap 2    # curve
+uv run python -m elexai.runner configs/gams3-12b-api.yaml --b-lemma  # B scoped to the lemma
+```
+
+`--b-lemma` restricts variant B's search to the target lemma's senses (sense
+questions only; skipped for relation questions, whose answer may belong to a
+different lemma). It tests the "first restrict candidates, then rank" repair:
+B's failure mode is searching all 131k definitions instead of the lemma's own
+senses (`retrieval.restrict_to_lemma`, `VectorRetriever.search_within`).

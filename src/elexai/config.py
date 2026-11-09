@@ -54,6 +54,10 @@ class RetrievalConfig(BaseModel):
     sweep_k: list[int] = [1, 3, 5, 10]
     metric: Literal["cosine", "l2", "ip"] = "cosine"
     corpus_limit: int | None = None  # dev/testing only; None = full corpus
+    # Variant B searches only the target lemma's senses when true (the "first
+    # restrict candidates, then rank" repair; skipped for relation questions,
+    # whose answer may belong to a different lemma).
+    restrict_to_lemma: bool = False
 
 
 class StructuredConfig(BaseModel):
