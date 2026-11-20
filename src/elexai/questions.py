@@ -24,6 +24,14 @@ Field reference (fixed by the task brief):
 - ``reviewer``: lexicographer name (required once ``verified``)
 - ``notes``: free text (ambiguity notes, caveats)
 - ``flags``: free-form markers, e.g. ``["trick"]`` for known-problematic items
+- ``design_cell``: the design cell of a *designed* question set (see
+  ``docs/DECISIONS.md`` D-030); empty for legacy questions. Sense cells are
+  ``S1_shallow_cued`` / ``S2_shallow_nocue`` / ``S3_buried_cued`` /
+  ``S4_buried_nocue``; relation cells are ``R_<relation>_<overlap|disjoint>``.
+  The cell is *derived* from the data by ``scripts/build_questions_v2.py``, never
+  asserted by hand.
+- ``phenomena``: extra design tags for subgroup analysis (``figurative``,
+  ``decoy``, ``low_polysemy``, ``multiword``).
 """
 
 from __future__ import annotations
@@ -54,6 +62,8 @@ class Question(BaseModel):
     reviewer: str = ""
     notes: str = ""
     flags: list[str] = Field(default_factory=list)
+    design_cell: str = ""
+    phenomena: list[str] = Field(default_factory=list)
 
 
 def load_questions(path: str | Path) -> list[Question]:

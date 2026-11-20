@@ -528,3 +528,74 @@ questions only; skipped for relation questions, whose answer may belong to a
 different lemma). It tests the "first restrict candidates, then rank" repair:
 B's failure mode is searching all 131k definitions instead of the lemma's own
 senses (`retrieval.restrict_to_lemma`, `VectorRetriever.search_within`).
+
+## D-030 (2026-11-20) - The v2 question set: a stratified *design*, not a random sample
+
+The v1 set (36 questions) was written to cover the task, not to separate the
+methods. With all candidates visible, C and D both saturate (C = D = 100 %
+excluding the two flawed items), and many v1 questions are answered correctly by
+every method - such items say nothing about the difference between C and D. The
+project lead's requirement: **the evaluation must make the differences between
+methodologies visible and support a later analysis**, so the test set has to be
+built around the mechanisms that separate them.
+
+The two mechanisms that decide C versus D:
+
+1. **candidate position** - is the gold sense inside the first `cap` senses of
+   the lemma (dictionary order), or buried?
+2. **lexical cue** - does the sentence contain a *distinctive* word from the gold
+   sense's dictionary neighbourhood (definition, collocations, synonyms)? Without
+   a cue the graph has nothing to match and falls back to dictionary order.
+
+Crossing them gives four sense cells with *predicted* signatures, plus relation
+cells where the explicit link is the only route:
+
+| cell | construction | prediction |
+|---|---|---|
+| `S1_shallow_cued` | gold in the first 3, distinctive cue | all methods work (calibration) |
+| `S2_shallow_nocue` | gold in the first 3, no cue | C right by position; D ties; B/decoy may fail |
+| `S3_buried_cued` | gold outside the first 3, distinctive cue | **C fails, D wins** (the payoff cell) |
+| `S4_buried_nocue` | gold outside the first 3, no cue | **C and D both fail** (the rule's boundary) |
+| `R_<rel>_overlap` | related definition overlaps the gold's | C solves it without the graph |
+| `R_<rel>_disjoint` | definitions share nothing | **only the link (D) solves it** |
+
+The cell is **derived from the data**, not asserted: `scripts/build_questions_v2.py`
+measures the gold position and the cue hits and refuses to write a question whose
+measured cell differs from the spec's `expect_cell`. Sentences for the new items
+were constructed around a *real* dictionary collocation of the intended sense
+(the collocation is what makes the cue verifiable), so the intended reading is
+unambiguous by construction; every item stays `draft` until a lexicographer
+verifies the sentence.
+
+The v2 set (`data/questions/questions_v2.jsonl`, spec
+`data/questions/design_v2.yaml`) has 51 questions: 16 reused from v1 (their cell
+is derived the same way) and 35 new. Distribution at `cap = 3`: S1 = 4,
+S2 = 12, S3 = 15, S4 = 5; synonyms 3 overlap + 6 disjoint, hypernyms 2 overlap,
+antonyms 1 overlap + 3 disjoint.
+
+Two findings fell out of building it, both worth recording:
+
+- most v1 "hard" items (q-025 *morski list*, q-026 *jabolko* = tree, q-029
+  *srce* = shape, q-030 *obraz* = person) are **shallow** (gold in the first 3
+  senses) - at `cap = 3` the gold is shown and the failure is **composition**,
+  not coverage. The v1 cap-12 results already pointed this way; the v2 cells make
+  the distinction explicit;
+- the DDDS/OSWN relation layer is noisy (WordNet re-linking by exact lemma puts
+  some senses in the wrong synset), so new relation items are limited to pairs
+  whose edge is a **dictionary-native synonym/antonym** and whose definitions are
+  disjoint by measurement. Hypernym items are kept to the two manually verified
+  v1 pairs. Mining relation pairs automatically is not safe yet - this is a
+  documented limitation, not an oversight.
+
+Running the v2 set:
+
+```bash
+# per-cell accuracy table for a run (A = answer text, B/C/D/oracle = cited id)
+uv run python scripts/eval_by_cell.py --run <run_id>
+
+# the runner accepts the question file, the cap and the B repair as CLI flags
+uv run python -m elexai.runner configs/gams3-12b-api.yaml \
+    --questions data/questions/questions_v2.jsonl --cap 3
+uv run python -m elexai.runner configs/skeleton.yaml \
+    --questions data/questions/questions_v2.jsonl --cap 3
+```

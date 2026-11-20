@@ -308,3 +308,11 @@ def test_apply_cli_overrides():
     again = runner_mod.apply_cli_overrides(out, cap=1, b_lemma=True)
     assert again.name == "gams-test-cap1-blemma"
     assert runner_mod.apply_cli_overrides(cfg).name == "gams-test"
+
+
+def test_apply_cli_overrides_questions():
+    cfg = ExperimentConfig(name="gams-test")
+    path = Path("data/questions/questions_v2.jsonl")
+    out = runner_mod.apply_cli_overrides(cfg, questions=path)
+    assert out.questions_path == path
+    assert out.name == "gams-test-v2"

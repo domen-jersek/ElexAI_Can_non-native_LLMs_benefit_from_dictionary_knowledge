@@ -167,6 +167,8 @@ def load_questions_table(path: Path = QUESTIONS_PATH) -> pd.DataFrame:
                 "related_sense_id": q.related_sense_id or None,
                 "question": q.question,
                 "context_sentence": q.context_sentence,
+                "design_cell": q.design_cell,
+                "phenomena": q.phenomena,
             }
             for q in questions
         ]

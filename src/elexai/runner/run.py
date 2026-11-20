@@ -437,7 +437,11 @@ def run_experiment(
 
 
 def apply_cli_overrides(
-    cfg: ExperimentConfig, *, cap: int | None = None, b_lemma: bool = False
+    cfg: ExperimentConfig,
+    *,
+    cap: int | None = None,
+    b_lemma: bool = False,
+    questions: Path | None = None,
 ) -> ExperimentConfig:
     """Apply regime overrides from the CLI and mark them in the run name.
 
@@ -464,6 +468,11 @@ def apply_cli_overrides(
             }
         )
         suffix += "-blemma"
+    if questions is not None:
+        cfg = cfg.model_copy(update={"questions_path": questions})
+        stem = questions.stem.replace("questions_", "")
+        if stem and stem != "questions":
+            suffix += f"-{stem}"
     if suffix and not cfg.name.endswith(suffix):
         cfg = cfg.model_copy(update={"name": cfg.name + suffix})
     return cfg
@@ -486,9 +495,20 @@ def main() -> int:
         action="store_true",
         help="variant B searches only the target lemma's senses (sense questions)",
     )
+    ap.add_argument(
+        "--questions",
+        type=Path,
+        default=None,
+        help="override questions_path (e.g. data/questions/questions_v2.jsonl)",
+    )
     args = ap.parse_args()
 
-    cfg = apply_cli_overrides(load_config(args.config), cap=args.cap, b_lemma=args.b_lemma)
+    cfg = apply_cli_overrides(
+        load_config(args.config),
+        cap=args.cap,
+        b_lemma=args.b_lemma,
+        questions=args.questions,
+    )
     run_dir = run_experiment(
         cfg, limit=args.limit, dry_run=args.dry_run, variants=args.variants
     )

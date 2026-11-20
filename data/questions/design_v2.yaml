@@ -1,0 +1,281 @@
+# Design spec for the v2 question set (see docs/DECISIONS.md D-030).
+#
+# The set is a STRATIFIED DESIGN, not a random sample:
+#
+#   sense cells (cap = 3, so positions 1-3 are visible):
+#     S1_shallow_cued    gold in the first 3, a distinctive cue is present
+#                        -> all methods should work (calibration)
+#     S2_shallow_nocue   gold in the first 3, no dictionary cue
+#                        -> C wins by position; B may fail (decoy context)
+#     S3_buried_cued     gold OUTSIDE the first 3, a distinctive cue is present
+#                        -> C must fail, D must win (the payoff cell)
+#     S4_buried_nocue    gold outside the first 3, no cue
+#                        -> C and D both fail (the rule's boundary)
+#
+#   relation cells:
+#     R_<relation>_overlap   the related sense's definition overlaps the gold's
+#                            -> C can solve it without the graph
+#     R_<relation>_disjoint  the definitions share nothing
+#                            -> only the explicit link (D) can solve it
+#
+# The cell is NOT hand-written: scripts/build_questions_v2.py derives it from the
+# dictionary (position, cue hits vs. the gold sense's neighbourhood) and refuses
+# to write a question whose measured cell differs from `expect_cell`.
+#
+# `phenomena` are extra tags for subgroup analysis (figurative, decoy,
+# low_polysemy, multiword).
+
+reuse:
+  # existing, already-used questions whose design cell is derived here
+  - id: q-001
+  - id: q-002
+  - id: q-003
+  - id: q-011
+    phenomena: [figurative]
+  - id: q-019
+    phenomena: [figurative]
+  - id: q-024
+  - id: q-025
+    phenomena: [figurative, multiword]
+  - id: q-026
+    phenomena: [figurative]
+  - id: q-029
+    phenomena: [figurative]
+  - id: q-030
+    phenomena: [figurative]
+  - id: q-031
+  - id: q-032
+  - id: q-033
+  - id: q-034
+  - id: q-035
+  - id: q-036
+
+new:
+  # ---- S1: shallow + distinctive cue (calibration) -------------------------
+  - id: v2-001
+    lemma: boks
+    target_word: boksu
+    gold_sense_id: "8150524"
+    context_sentence: "Prvak v boksu je naslov zagovarjal tudi letos."
+    expect_cell: S1_shallow_cued
+  - id: v2-002
+    lemma: paličica
+    target_word: paličicami
+    gold_sense_id: "16598655"
+    context_sentence: "S paličicami je nabadal koščke piščanca."
+    expect_cell: S1_shallow_cued
+  - id: v2-003
+    lemma: polniti
+    target_word: polnimo
+    gold_sense_id: "16628849"
+    context_sentence: "Ponoči polnimo akumulator, da je zjutraj pripravljen."
+    expect_cell: S1_shallow_cued
+
+  # ---- S2: shallow + NO cue (C wins by position; decoy context) ------------
+  - id: v2-011
+    lemma: boks
+    target_word: boksom
+    gold_sense_id: "8150524"
+    context_sentence: "Moj brat se že pet let ukvarja z boksom."
+    expect_cell: S2_shallow_nocue
+    phenomena: [decoy]
+  - id: v2-012
+    lemma: kolo
+    target_word: kolesom
+    gold_sense_id: "16252263"
+    context_sentence: "S kolesom se vsak dan pelje v službo."
+    expect_cell: S2_shallow_nocue
+    phenomena: [decoy]
+  - id: v2-013
+    lemma: miš
+    target_word: miško
+    gold_sense_id: "8153634"
+    context_sentence: "Z miško je kliknil na ikono."
+    expect_cell: S2_shallow_nocue
+    phenomena: [decoy, low_polysemy]
+  - id: v2-014
+    lemma: list
+    target_word: list
+    gold_sense_id: "16232636"
+    context_sentence: "Na mizi je ležal prazen list papirja."
+    expect_cell: S2_shallow_nocue
+    phenomena: [decoy, low_polysemy]
+  - id: v2-015
+    lemma: pero
+    target_word: peresom
+    gold_sense_id: "16255190"
+    context_sentence: "S peresom je podpisal pogodbo."
+    expect_cell: S2_shallow_nocue
+    phenomena: [decoy]
+  - id: v2-016
+    lemma: miš
+    target_word: miš
+    gold_sense_id: "8153627"
+    context_sentence: "Na podstrešju se je pojavila miš."
+    expect_cell: S2_shallow_nocue
+    phenomena: [low_polysemy]
+
+  # ---- S3: buried + distinctive cue (the payoff cell) ---------------------
+  - id: v2-021
+    lemma: boks
+    target_word: boksu
+    gold_sense_id: "8150541"
+    context_sentence: "Sosed v garažnem boksu shranjuje kolo in orodje."
+    expect_cell: S3_buried_cued
+  - id: v2-022
+    lemma: vezava
+    target_word: vezavi
+    gold_sense_id: "16617472"
+    context_sentence: "Pri vezavi na antigen je pomembna oblika molekule."
+    expect_cell: S3_buried_cued
+  - id: v2-023
+    lemma: paličica
+    target_word: paličicah
+    gold_sense_id: "16598659"
+    context_sentence: "V sobi je dišalo po dišavnih paličicah."
+    expect_cell: S3_buried_cued
+  - id: v2-024
+    lemma: paličica
+    target_word: paličice
+    gold_sense_id: "16598661"
+    context_sentence: "V mrežnici so paličice in čepki."
+    expect_cell: S3_buried_cued
+  - id: v2-025
+    lemma: polniti
+    target_word: polni
+    gold_sense_id: "16628852"
+    context_sentence: "Občina vsako leto polni blagajno z davki."
+    expect_cell: S3_buried_cued
+  - id: v2-026
+    lemma: polniti
+    target_word: polnili
+    gold_sense_id: "16628854"
+    context_sentence: "Napadalci so ves drugi polčas polnili mrežo nasprotnika."
+    expect_cell: S3_buried_cued
+  - id: v2-027
+    lemma: vezati
+    target_word: vezali
+    gold_sense_id: "16631047"
+    context_sentence: "Prihranke smo vezali pri banki za dve leti."
+    expect_cell: S3_buried_cued
+  - id: v2-028
+    lemma: rezati
+    target_word: rezal
+    gold_sense_id: "16632594"
+    context_sentence: "Čoln je rezal gladino jezera."
+    expect_cell: S3_buried_cued
+  - id: v2-029
+    lemma: zapirati
+    target_word: zapirati
+    gold_sense_id: "16634039"
+    context_sentence: "Po razočaranju se je začel zapirati v svoj kabinet."
+    expect_cell: S3_buried_cued
+  - id: v2-030
+    lemma: odvzeti
+    target_word: odvzeli
+    gold_sense_id: "16623805"
+    context_sentence: "Med pregledom so mu odvzeli bris."
+    expect_cell: S3_buried_cued
+  - id: v2-031
+    lemma: obdelati
+    target_word: obdelal
+    gold_sense_id: "16621950"
+    context_sentence: "Fotografijo je grafično obdelal v urejevalniku."
+    expect_cell: S3_buried_cued
+  - id: v2-032
+    lemma: zavrteti
+    target_word: zavrti
+    gold_sense_id: "16621577"
+    context_sentence: "Motor se zavrti na tri tisoč obratov na minuto."
+    expect_cell: S3_buried_cued
+  - id: v2-033
+    lemma: pozicija
+    target_word: pozicijo
+    gold_sense_id: "16614921"
+    context_sentence: "Trener ga je postavil na levo igralno pozicijo."
+    expect_cell: S3_buried_cued
+  - id: v2-034
+    lemma: zviševanje
+    target_word: zviševanje
+    gold_sense_id: "16610302"
+    context_sentence: "Zviševanje temperature je vplivalo na potek poskusa."
+    expect_cell: S3_buried_cued
+
+  # ---- S4: buried + NO cue (the boundary: D cannot help) -----------------
+  - id: v2-041
+    lemma: transformacija
+    target_word: transformacije
+    gold_sense_id: "16614444"
+    context_sentence: "V drugem polčasu je prišlo do popolne transformacije igre."
+    expect_cell: S4_buried_nocue
+  - id: v2-042
+    lemma: pozicija
+    target_word: pozicijo
+    gold_sense_id: "16614923"
+    context_sentence: "Po napaki je igralec izgubil pozicijo."
+    expect_cell: S4_buried_nocue
+  - id: v2-043
+    lemma: vezava
+    target_word: vezavi
+    gold_sense_id: "16617473"
+    context_sentence: "Pri vezavi kablov je prišlo do napake."
+    expect_cell: S4_buried_nocue
+
+relations:
+  # ---- R2: synonym, DISJOINT definitions (only the link can solve it) ----
+  - id: v2-051
+    lemma: trobenta
+    gold_sense_id: "8367803"
+    relation: synonym
+    related_sense_id: "16255101"
+    expect_cell: R_synonym_disjoint
+  - id: v2-052
+    lemma: cepljenje
+    gold_sense_id: "16252812"
+    relation: synonym
+    related_sense_id: "16279745"
+    expect_cell: R_synonym_disjoint
+  - id: v2-053
+    lemma: boj
+    gold_sense_id: "16261861"
+    relation: synonym
+    related_sense_id: "16278333"
+    expect_cell: R_synonym_disjoint
+  - id: v2-054
+    lemma: mreža
+    gold_sense_id: "16268208"
+    relation: synonym
+    related_sense_id: "16280740"
+    expect_cell: R_synonym_disjoint
+  - id: v2-055
+    lemma: koza
+    gold_sense_id: "8299192"
+    relation: synonym
+    related_sense_id: "8367914"
+    expect_cell: R_synonym_disjoint
+  - id: v2-056
+    lemma: omejitev
+    gold_sense_id: "16265770"
+    relation: synonym
+    related_sense_id: "16282524"
+    expect_cell: R_synonym_disjoint
+
+  # ---- R4: antonym, DISJOINT definitions (link-only) ---------------------
+  - id: v2-061
+    lemma: začetek
+    gold_sense_id: "16272568"
+    relation: antonym
+    related_sense_id: "16272466"
+    expect_cell: R_antonym_disjoint
+  - id: v2-062
+    lemma: opustiti
+    gold_sense_id: "16271228"
+    relation: antonym
+    related_sense_id: "16256491"
+    expect_cell: R_antonym_disjoint
+  - id: v2-063
+    lemma: zavrniti
+    gold_sense_id: "16270721"
+    relation: antonym
+    related_sense_id: "16250768"
+    expect_cell: R_antonym_disjoint
