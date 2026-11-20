@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
 from elexai.analysis import load_questions_table
 from elexai.env import REPO_ROOT
@@ -46,7 +47,11 @@ def main() -> int:
         raise SystemExit(f"run not found: {run_dir}")
 
     pq = load_per_question(run_dir)
-    qs = load_questions_table().set_index("question_id")
+    cfg = yaml.safe_load((run_dir / "config.resolved.yaml").read_text(encoding="utf-8"))
+    qpath = Path(cfg["questions_path"])
+    if not qpath.is_absolute():
+        qpath = REPO_ROOT / qpath
+    qs = load_questions_table(qpath).set_index("question_id")
     pq = pq[pq["question_id"].isin(qs.index)].copy()
     pq["design_cell"] = pq["question_id"].map(qs["design_cell"])
     pq["phenomena"] = pq["question_id"].map(
