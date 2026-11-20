@@ -210,6 +210,32 @@ a single user message, so all of them work as-is. `--cap N` sets the same cap fo
 C and D; `--b-lemma` restricts variant B to the target lemma's senses. Both are
 recorded in the run name and the resolved config.
 
+## 9. The v2 designed question set (for method comparisons)
+
+`data/questions/questions_v2.jsonl` is a stratified design, not a random sample:
+each item belongs to a cell that tests one mechanism (see
+`docs/DECISIONS.md` D-030). The primary regime is `cap = 3`; the full candidate
+list is only a ceiling reference.
+
+```
+# per-cell accuracy table (the informative view for this set)
+uv run python scripts/eval_by_cell.py --run <run_id>
+
+# run the design on a model (the runner records the file and the cap)
+uv run python -m elexai.runner configs/gams3-12b-api.yaml \
+    --questions data/questions/questions_v2.jsonl --cap 3
+uv run python -m elexai.runner configs/skeleton.yaml \
+    --questions data/questions/questions_v2.jsonl --cap 3
+
+# rebuild the set after editing data/questions/design_v2.yaml
+uv run python scripts/build_questions_v2.py
+```
+
+`--cap N` sets `structured.max_senses` and `graph.max_candidates` together;
+`--b-lemma` restricts variant B to the target lemma's senses. Both are recorded
+in the run name and the resolved config. `eval_by_cell.py` reads the question
+set from the run's config, so v1 and v2 runs can be compared side by side.
+
 ## Troubleshooting
 
 - `environment variable 'OPENROUTER_API_KEY' is not set` -> add it to `.env`.

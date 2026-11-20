@@ -642,6 +642,22 @@ the expected precision cost of stemming, now controlled by IDF. S4 is unchanged
 by construction (no cue -> all scores zero -> dictionary order), which is the
 correct behaviour.
 
+Effect on the actual LLM runs (v2 set, cap 3; the same prompts, only the D
+ranking changes; A/B/C/oracle are unaffected by construction):
+
+| model | D pre-fix | D post-fix | S3 pre-fix | S3 post-fix |
+|---|---|---|---|---|
+| `openai/gpt-6-luna` | 0.80 | **0.86** | 0.80 (12/15) | **1.00 (15/15)** |
+| `GaMS3-12B-Instruct` | 0.77 | **0.82** | 0.80 (12/15) | **1.00 (15/15)** |
+| `GaMS2-27B-Instruct` | 0.78 | **0.82** | 0.80 (12/15) | **0.93 (14/15)** |
+| `GaMS-9B-Instruct-Nemotron` | 0.80 | **0.86** | 0.80 (12/15) | **1.00 (15/15)** |
+
+The payoff cell is now clean: a buried gold with a distinctive cue is recovered
+by D in 15/15 cases for three of four models (27B: 14/15), while C is 0/15 by
+construction. The four pre-fix v2 runs
+(`20261120-151004/151010/152135/152212`) are kept as the ablation evidence and
+must not be mixed with post-fix numbers.
+
 Consequences:
 
 - every v2 number reported after this point comes from the fixed ranker; the
