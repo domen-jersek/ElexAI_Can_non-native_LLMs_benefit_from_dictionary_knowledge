@@ -196,6 +196,7 @@ def _context_for_variant(
                 question.related_sense_id,
                 question.relation or "",
                 sentence=question.question,
+                target_word=question.target_word,
                 gold_sense_id=question.gold_sense_id,
                 max_candidates=cfg.structured.oracle_max_candidates,
             )
@@ -222,6 +223,7 @@ def _context_for_variant(
                 question.related_sense_id,
                 question.relation or "",
                 sentence=question.question,
+                target_word=question.target_word,
             )
             gold_rank = next(
                 (i + 1 for i, s in enumerate(gc.scores) if s["sense_id"] == question.gold_sense_id),
@@ -237,7 +239,11 @@ def _context_for_variant(
                 "evidence_sense_ids": gc.evidence_sense_ids,
                 "gold_evidence": question.gold_sense_id in gc.evidence_sense_ids,
             }
-        gc = graph.context_for(question.lemma, question.context_sentence)
+        gc = graph.context_for(
+            question.lemma,
+            question.context_sentence,
+            target_word=question.target_word,
+        )
         gold_rank = next(
             (i + 1 for i, s in enumerate(gc.scores) if s["sense_id"] == question.gold_sense_id),
             None,

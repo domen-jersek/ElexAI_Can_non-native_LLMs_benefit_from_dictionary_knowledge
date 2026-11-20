@@ -117,7 +117,7 @@ def test_runner_variant_d_with_fake_graph(tmp_path, monkeypatch):
         def __init__(self):
             self.closed = False
 
-        def context_for(self, lemma, sentence):
+        def context_for(self, lemma, sentence, *, target_word):
             return GraphContext(
                 text="ID: 10\nBeseda: kos\nDefinicija: del celote",
                 shown_sense_ids=["10"],
@@ -182,6 +182,7 @@ def test_runner_relation_question_dry_run(tmp_path, monkeypatch):
             relation,
             *,
             sentence,
+            target_word,
             gold_sense_id=None,
             max_candidates=None,
         ):

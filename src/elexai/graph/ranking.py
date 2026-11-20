@@ -7,9 +7,11 @@ the sense's neighborhood:
 - synonym words: weight ``weight_synonym`` (default 2)
 - typical collocation forms: weight ``weight_collocation`` (default 2)
 
-The target lemma's own token(s) are excluded from scoring - they appear in every
-candidate's collocations and would otherwise cancel out. Ties break by dictionary
-sense order, then by sense id, so the ranking is deterministic.
+The target **word form** (and the lemma, and their stems) are excluded from
+scoring: they appear in many candidates' collocations and would otherwise act as
+evidence for a sense that merely happens to own the surface form (the "boksu"
+false positive found by the v2 designed set). Ties break by dictionary sense
+order, then by sense id, so the ranking is deterministic.
 
 `build_context` renders the top candidates as context blocks through the SAME
 ``SenseChunk.block`` code path as variant C, so the only difference between C and
@@ -18,10 +20,13 @@ D is the ORDER of candidates (plus the logged scores).
 
 from __future__ import annotations
 
+import math
+from collections import Counter
 from dataclasses import dataclass, field
 
 from elexai.eval.metrics import normalize_text
 from elexai.retrieval.chunks import SenseChunk
+from elexai.text import stem
 
 # Small heuristic stopword list (Slovene function words); scoring is lexical, so
 # these would otherwise create noise matches.
@@ -67,52 +72,102 @@ def _tokens(text: str) -> list[str]:
     return [t for t in normalize_text(text).split() if t and t not in STOPWORDS]
 
 
+def _target_forms(target_lemma: str, target_word: str) -> set[str]:
+    """All surface/stem forms of the target that must never count as evidence."""
+    forms: set[str] = set()
+    for text in (target_lemma, target_word):
+        for token in _tokens(text):
+            forms.add(token)
+            forms.add(stem(token))
+    return forms
+
+
 def rank_candidates(
     sentence: str,
     target_lemma: str,
     candidates: list[GraphSense],
     *,
+    target_word: str,
     weight_definition: float = 1.0,
     weight_collocation: float = 2.0,
     weight_synonym: float = 2.0,
     weight_synset_literal: float = 2.0,
     weight_hypernym_gloss: float = 1.0,
 ) -> list[RankedSense]:
+    """Rank the lemma's candidate senses by (IDF-weighted) neighborhood match.
+
+    Two correctness rules, both found by the v2 designed set:
+
+    - ``target_word`` is the surface form as it appears in the sentence (e.g.
+      ``boksu`` for lemma ``boks``); it, the lemma, and their stems are excluded
+      from the sentence tokens. Without this, a sense that merely owns the
+      target's surface form in its collocation list collects fake evidence.
+    - matches are compared on **stems**, not exact tokens (garažni/garažnem,
+      dišavne/dišavnih), and each matched stem is weighted by its **inverse
+      document frequency across the candidate senses**: a word that appears in
+      many senses' neighbourhoods (vplivalo, potek) carries little signal, a
+      word that appears in one (temperature, antigen, garažni) carries a lot.
+      Without the IDF weight, stemming alone lets generic words outvote the
+      real cue (the v2-034 regression).
+    """
     target = normalize_text(target_lemma)
-    sentence_tokens = {t for t in _tokens(sentence) if t != target}
+    excluded = _target_forms(target_lemma, target_word)
+
+    def token_map(text: str) -> dict[str, str]:
+        """stem -> surface form, dropping stopwords and the target's own forms."""
+        return {
+            stem(t): t
+            for t in _tokens(text)
+            if t != target and stem(t) not in excluded
+        }
+
+    def matched(left: dict[str, str], right: dict[str, str]) -> list[str]:
+        return sorted(left[s] for s in left.keys() & right.keys())
+
+    sentence_tokens = token_map(sentence)
+    maps_per_sense = [
+        {
+            "definition": token_map(f"{sense.indicator} {sense.definition}"),
+            "synonym": token_map(" ".join(lemma for _, lemma in sense.synonyms)),
+            "collocation": token_map(" ".join(sense.collocations)),
+            "synset": token_map(" ".join(sense.synset_literals)),
+            "hypernym": token_map(" ".join(sense.hypernym_glosses)),
+        }
+        for sense in candidates
+    ]
+
+    document_frequency: Counter[str] = Counter()
+    for maps in maps_per_sense:
+        for token in set().union(*maps.values()):
+            document_frequency[token] += 1
+    total = max(1, len(candidates))
+    idf = {
+        token: math.log((total + 1) / (df + 1)) + 1.0
+        for token, df in document_frequency.items()
+    }
+
+    def weighted(tokens: dict[str, str], matches: list[str]) -> float:
+        by_surface = {surface: stem(surface) for surface in matches}
+        return sum(idf.get(by_surface[surface], 1.0) for surface in matches)
+
     ranked: list[RankedSense] = []
-    for sense in candidates:
-        definition_tokens = {
-            t for t in _tokens(f"{sense.indicator} {sense.definition}") if t != target
-        }
-        synonym_tokens = {
-            t for _, lemma in sense.synonyms for t in _tokens(lemma) if t != target
-        }
-        collocation_tokens = {
-            t for t in _tokens(" ".join(sense.collocations)) if t != target
-        }
-        synset_tokens = {
-            t for literal in sense.synset_literals for t in _tokens(literal) if t != target
-        }
-        hypernym_tokens = {
-            t for gloss in sense.hypernym_glosses for t in _tokens(gloss) if t != target
-        }
-        matched_def = sorted(sentence_tokens & definition_tokens)
-        matched_syn = sorted(sentence_tokens & synonym_tokens)
-        matched_coll = sorted(sentence_tokens & collocation_tokens)
-        matched_synset = sorted(sentence_tokens & synset_tokens)
-        matched_hypernym = sorted(sentence_tokens & hypernym_tokens)
+    for sense, maps in zip(candidates, maps_per_sense, strict=True):
+        matched_def = matched(sentence_tokens, maps["definition"])
+        matched_syn = matched(sentence_tokens, maps["synonym"])
+        matched_coll = matched(sentence_tokens, maps["collocation"])
+        matched_synset = matched(sentence_tokens, maps["synset"])
+        matched_hypernym = matched(sentence_tokens, maps["hypernym"])
         score = (
-            weight_definition * len(matched_def)
-            + weight_synonym * len(matched_syn)
-            + weight_collocation * len(matched_coll)
-            + weight_synset_literal * len(matched_synset)
-            + weight_hypernym_gloss * len(matched_hypernym)
+            weight_definition * weighted(sentence_tokens, matched_def)
+            + weight_synonym * weighted(sentence_tokens, matched_syn)
+            + weight_collocation * weighted(sentence_tokens, matched_coll)
+            + weight_synset_literal * weighted(sentence_tokens, matched_synset)
+            + weight_hypernym_gloss * weighted(sentence_tokens, matched_hypernym)
         )
         ranked.append(
             RankedSense(
                 sense=sense,
-                score=score,
+                score=round(score, 4),
                 matched_definition=matched_def,
                 matched_synonyms=matched_syn,
                 matched_collocations=matched_coll,
@@ -150,6 +205,7 @@ def build_context(
     target_lemma: str,
     candidates: list[GraphSense],
     *,
+    target_word: str,
     max_candidates: int = 12,
     synonyms_shown: int = 5,
     collocations_shown: int = 8,
@@ -164,6 +220,7 @@ def build_context(
         sentence,
         target_lemma,
         candidates,
+        target_word=target_word,
         weight_definition=weight_definition,
         weight_collocation=weight_collocation,
         weight_synonym=weight_synonym,
@@ -205,6 +262,7 @@ def build_relation_context(
     candidates: list[GraphSense],
     evidence: dict[str, str],
     *,
+    target_word: str,
     max_candidates: int = 12,
     synonyms_shown: int = 5,
     collocations_shown: int = 8,
@@ -248,6 +306,7 @@ def build_relation_context(
             sentence,
             target_lemma,
             candidates,
+            target_word=target_word,
             weight_definition=weight_definition,
             weight_collocation=weight_collocation,
             weight_synonym=weight_synonym,

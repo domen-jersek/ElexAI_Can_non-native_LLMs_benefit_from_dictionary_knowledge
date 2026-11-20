@@ -599,3 +599,57 @@ uv run python -m elexai.runner configs/gams3-12b-api.yaml \
 uv run python -m elexai.runner configs/skeleton.yaml \
     --questions data/questions/questions_v2.jsonl --cap 3
 ```
+
+## D-031 (2026-11-20) - Variant D ranking fixed: target-form leakage, stemming, IDF
+
+The v2 designed set immediately exposed three defects in the neighborhood
+scorer (`src/elexai/graph/ranking.py`). All three made D look worse than the
+method actually is, and one of them was a genuine false positive:
+
+1. **Target-form leakage.** The scorer excluded only the exact lemma token from
+   the sentence, not its inflected forms. Because the dictionary's collocation
+   lists contain single-word entries that are just the lemma's own form (e.g.
+   `boksu`), a sentence containing `boksu` gave a 2.0 collocation match to
+   whichever sense owned that entry - fake evidence. The excluded set is now
+   the target **word** (surface form), the lemma, and their stems; passing the
+   lemma instead of the surface form is no longer possible through the public
+   API (`target_word` is a required argument).
+2. **Exact-token matching.** Collocations were compared as exact strings, so
+   `garažni` did not match `garažnem` and `dišavne` did not match `dišavnih` -
+   three designed payoff items failed for a purely morphological reason. Matches
+   are now compared on the shared crude stemmer (`src/elexai/text.py`).
+3. **No weighting.** Stemming alone let generic words (`vplivalo`, `potek`) that
+   appear in many candidates' neighbourhoods outvote the distinctive cue
+   (`v2-034` regression). Each matched stem is now weighted by its inverse
+   document frequency across the candidate senses:
+   `idf = log((N + 1) / (df + 1)) + 1`, so a word present in one candidate's
+   neighbourhood carries much more signal than one present in all of them.
+
+Offline ablation (36 sense questions of the v2 set; gold rank in the candidate
+order, no LLM calls):
+
+| cell | pre-fix gold in top-3 | post-fix |
+|---|---|---|
+| `S1_shallow_cued` | 4/4 | 4/4 |
+| `S2_shallow_nocue` | 10/12 | 10/12 |
+| `S3_buried_cued` | 12/15 | **15/15** |
+| `S4_buried_nocue` | 0/5 | 0/5 |
+| all sense questions | 26/36 | 29/36 |
+
+The three S3 changes are `v2-021` (4 -> 1), `v2-022` (4 -> 1), `v2-023` (7 -> 1);
+the only rank regression is `v2-034` (1 -> 3), which stays inside the cap and is
+the expected precision cost of stemming, now controlled by IDF. S4 is unchanged
+by construction (no cue -> all scores zero -> dictionary order), which is the
+correct behaviour.
+
+Consequences:
+
+- every v2 number reported after this point comes from the fixed ranker; the
+  pre-fix v2 runs are kept as evidence of the ablation and are labelled as such;
+- the v1 D numbers are not affected in any headline way (the full-context run
+  was already at ceiling), but v1 runs were produced before the fix and should
+  not be mixed with post-fix v2 numbers without saying so;
+- the remaining limitation is the **crude stemmer**: a real Slovene lemmatiser
+  (or a proper IDF over the full corpus rather than the candidate set) is the
+  research-grade replacement. The API now makes the target form mandatory, so
+  the leakage cannot silently return.

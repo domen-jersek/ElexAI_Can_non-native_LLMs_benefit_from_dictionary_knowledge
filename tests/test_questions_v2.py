@@ -9,6 +9,7 @@ import pytest
 
 from elexai.env import REPO_ROOT
 from elexai.questions import load_questions, validate_questions
+from elexai.text import stem
 
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import build_questions_v2 as builder  # noqa: E402
@@ -17,10 +18,10 @@ DESIGNED = REPO_ROOT / "data" / "questions" / "questions_v2.jsonl"
 
 
 def test_stemmer_meets_inflections_but_keeps_words_apart():
-    assert builder.stem("brisom") == builder.stem("bris")
-    assert builder.stem("dišavnih") == builder.stem("dišavne")
-    assert builder.stem("garažnem") == builder.stem("garažni")
-    assert builder.stem("napaka") != builder.stem("napadov")
+    assert stem("brisom") == stem("bris")
+    assert stem("dišavnih") == stem("dišavne")
+    assert stem("garažnem") == stem("garažni")
+    assert stem("napaka") != stem("napadov")
 
 
 def test_content_words_drops_stopwords_and_target_forms():

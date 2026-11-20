@@ -34,6 +34,7 @@ import yaml
 
 from elexai.env import REPO_ROOT
 from elexai.questions import Question, load_questions, validate_questions
+from elexai.text import stem
 
 CORE = REPO_ROOT / "data" / "processed" / "ddds" / "lexical_core.jsonl"
 V1 = REPO_ROOT / "data" / "questions" / "questions.jsonl"
@@ -57,24 +58,6 @@ STOP = set(
     kateri katera katero ta to tega temu tem temvec ampak""".split()
 )
 WORD = re.compile(r"[a-z\u010d\u0161\u017e\u0107\u0111\u00e1\u00e9\u00ed\u00f3\u00fa]+", re.IGNORECASE)
-SUFFIXES = (
-    "ostjo", "ega", "emu", "ost", "ijo", "ija", "ami", "ih", "ah", "ov", "ev",
-    "om", "em", "im", "am", "jo", "ja", "je", "o", "a", "e", "i", "u",
-)
-
-
-def stem(token: str) -> str:
-    """Crude Slovene stemmer: strip one common ending, keep the first 5 chars.
-
-    Enough to make inflected forms of the same word meet (brisom/bris,
-    garaznem/garazni, disavnih/disavne), while keeping different words apart
-    (napaka/napadov -> napak/napad).
-    """
-    for suffix in SUFFIXES:
-        if len(token) > len(suffix) + 3 and token.endswith(suffix):
-            token = token[: -len(suffix)]
-            break
-    return token[:5]
 
 
 def content_words(text: str, *, exclude_prefixes: tuple[str, ...] = ()) -> set[str]:

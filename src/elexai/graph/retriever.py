@@ -185,12 +185,13 @@ class GraphRetriever:
             )
         return out
 
-    def context_for(self, lemma: str, sentence: str) -> GraphContext:
+    def context_for(self, lemma: str, sentence: str, *, target_word: str) -> GraphContext:
         candidates = self._fetch(lemma)
         text, shown_ids, scores = build_context(
             sentence,
             lemma,
             candidates,
+            target_word=target_word,
             max_candidates=self.cfg.max_candidates,
             synonyms_shown=self.cfg.synonyms_shown,
             collocations_shown=self.cfg.collocations_shown,
@@ -221,6 +222,7 @@ class GraphRetriever:
         relation: str,
         *,
         sentence: str,
+        target_word: str,
         gold_sense_id: str | None = None,
         max_candidates: int | None = None,
     ) -> GraphContext:
@@ -245,6 +247,7 @@ class GraphRetriever:
             lemma,
             candidates,
             evidence,
+            target_word=target_word,
             max_candidates=max_candidates or self.cfg.max_candidates,
             synonyms_shown=self.cfg.synonyms_shown,
             collocations_shown=self.cfg.collocations_shown,
