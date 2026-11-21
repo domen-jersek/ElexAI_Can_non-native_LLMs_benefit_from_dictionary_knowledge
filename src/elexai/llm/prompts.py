@@ -21,11 +21,14 @@ from __future__ import annotations
 
 from elexai.questions import Question
 
-TEMPLATE_VERSION = "sd-v1"  # sense-disambiguation template (kept for old runs)
+TEMPLATE_VERSION = "sd-v1"  # sense disambiguation in a sentence (kept for old runs)
 TEMPLATE_VERSION_RELATION = "rel-v1"
-_TEMPLATE_VERSIONS = {
-    "sense_disambiguation": TEMPLATE_VERSION,
-    "relation": TEMPLATE_VERSION_RELATION,
+TEMPLATE_VERSION_DEFINITION = "def-v1"  # query = a dictionary gloss
+TEMPLATE_VERSION_COLLOCATION = "col-v1"  # query = a multi-word collocation
+_SENSE_TEMPLATES = {
+    "sentence": TEMPLATE_VERSION,
+    "definition": TEMPLATE_VERSION_DEFINITION,
+    "collocation": TEMPLATE_VERSION_COLLOCATION,
 }
 
 _INSTRUCTIONS = """\
@@ -34,6 +37,28 @@ Si jezikoslovec, ki odgovarja na vprašanje o pomenu slovenske besede v danem st
 Pravila:
 1. Določi, kateri pomen ciljne besede je uporabljen v stavku.
 2. Če so spodaj navedeni možni pomeni z identifikatorji (ID), izberi natanko enega izmed njih.
+3. V vrstico SENSE_ID vpiši ID izbranega pomena. Če možni pomeni niso navedeni, vpiši none.
+4. V vrstico ODGOVOR vpiši kratek opis izbranega pomena (1-2 stavka), v slovenščini.
+5. Ne dodajaj nobenega drugega besedila.\
+"""
+
+_DEFINITION_INSTRUCTIONS = """\
+Si jezikoslovec, ki odgovarja na vprašanje o pomenu slovenske besede.
+
+Pravila:
+1. Podana je razlaga pomena ciljne besede.
+2. Med spodaj navedenimi možnimi pomeni ciljne besede izberi natanko tistega, ki ustreza podani razlagi.
+3. V vrstico SENSE_ID vpiši ID izbranega pomena. Če možni pomeni niso navedeni, vpiši none.
+4. V vrstico ODGOVOR vpiši kratek opis izbranega pomena (1-2 stavka), v slovenščini.
+5. Ne dodajaj nobenega drugega besedila.\
+"""
+
+_COLLOCATION_INSTRUCTIONS = """\
+Si jezikoslovec, ki odgovarja na vprašanje o pomenu slovenske besede v zvezi.
+
+Pravila:
+1. Podana je zveza, v kateri je uporabljena ciljna beseda.
+2. Med spodaj navedenimi možnimi pomeni ciljne besede izberi natanko tistega, ki je uporabljen v podani zvezi.
 3. V vrstico SENSE_ID vpiši ID izbranega pomena. Če možni pomeni niso navedeni, vpiši none.
 4. V vrstico ODGOVOR vpiši kratek opis izbranega pomena (1-2 stavka), v slovenščini.
 5. Ne dodajaj nobenega drugega besedila.\
@@ -53,7 +78,9 @@ Pravila:
 
 def template_version(question: Question) -> str:
     """The template version used for this question (recorded per answer)."""
-    return _TEMPLATE_VERSIONS[question.question_type]
+    if question.question_type == "relation":
+        return TEMPLATE_VERSION_RELATION
+    return _SENSE_TEMPLATES[question.task_type]
 
 
 def render(question: Question, context: str | None) -> str:
@@ -71,9 +98,14 @@ def render(question: Question, context: str | None) -> str:
             f"SENSE_ID: <ID ali none>\n"
             f"ODGOVOR: <opis pomena>"
         )
+    if question.task_type == "definition":
+        head = f"{_DEFINITION_INSTRUCTIONS}\n\nRazlaga: {question.context_sentence}\n"
+    elif question.task_type == "collocation":
+        head = f"{_COLLOCATION_INSTRUCTIONS}\n\nZveza: {question.context_sentence}\n"
+    else:
+        head = f"{_INSTRUCTIONS}\n\nStavek: {question.context_sentence}\n"
     return (
-        f"{_INSTRUCTIONS}\n\n"
-        f"Stavek: {question.context_sentence}\n"
+        f"{head}"
         f"Ciljna beseda: {question.target_word}\n"
         f"Besedna vrsta: {question.pos}\n\n"
         f"Možni pomeni:\n{block}\n\n"

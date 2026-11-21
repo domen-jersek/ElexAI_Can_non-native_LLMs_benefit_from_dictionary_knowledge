@@ -31,6 +31,32 @@ RELATION_QUESTION = Question(
     source_dictionary_version="DDDS backup v3.68",
 )
 
+DEFINITION_QUESTION = Question(
+    id="d-x",
+    question="Kateri pomen besede »kos« ustreza razlagi »del celote«?",
+    target_word="kos",
+    lemma="kos",
+    pos="noun",
+    task_type="definition",
+    context_sentence="del celote",
+    gold_sense_id="123",
+    gold_answer="del celote",
+    source_dictionary_version="DDDS backup v3.68",
+)
+
+COLLOCATION_QUESTION = Question(
+    id="c-x",
+    question="Kateri pomen besede »kos« je uporabljen v zvezi »kos kruha«?",
+    target_word="kos",
+    lemma="kos",
+    pos="noun",
+    task_type="collocation",
+    context_sentence="kos kruha",
+    gold_sense_id="123",
+    gold_answer="del celote",
+    source_dictionary_version="DDDS backup v3.68",
+)
+
 
 def test_render_contains_question_and_shape():
     text = render(QUESTION, None)
@@ -66,3 +92,19 @@ def test_relation_render_contains_question_and_shape():
 def test_template_versions_per_type():
     assert template_version(QUESTION) == "sd-v1"
     assert template_version(RELATION_QUESTION) == "rel-v1"
+    assert template_version(DEFINITION_QUESTION) == "def-v1"
+    assert template_version(COLLOCATION_QUESTION) == "col-v1"
+
+
+def test_definition_render_uses_gloss_label():
+    text = render(DEFINITION_QUESTION, "ID: 123\nBeseda: kos\nDefinicija: del celote")
+    assert "Razlaga: del celote" in text
+    assert "Stavek:" not in text
+    assert "SENSE_ID:" in text and "ODGOVOR:" in text
+
+
+def test_collocation_render_uses_collocation_label():
+    text = render(COLLOCATION_QUESTION, None)
+    assert "Zveza: kos kruha" in text
+    assert "Stavek:" not in text
+    assert "(Ni na voljo.)" in text

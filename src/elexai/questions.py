@@ -13,6 +13,10 @@ Field reference (fixed by the task brief):
 - ``lemma``: dictionary headword (DDDS lexeme lemma)
 - ``pos``: part of speech of the target
 - ``question_type``: ``sense_disambiguation`` | ``relation``
+- ``task_type``: for sense questions, what the query is: ``sentence`` (a
+  sentence, the original task), ``definition`` (a dictionary gloss), or
+  ``collocation`` (a multi-word collocation). Relations use ``sentence`` by
+  default (the field is ignored).
 - ``relation``: for relation questions: ``synonym`` | ``antonym`` | ``hypernym`` | ``hyponym``
   (the target sense stands in this relation to ``related_sense_id``)
 - ``related_sense_id``: for relation questions: the DDDS sense the target sense is related to
@@ -52,6 +56,7 @@ class Question(BaseModel):
     lemma: str = Field(min_length=1)
     pos: str = Field(min_length=1)
     question_type: Literal["sense_disambiguation", "relation"] = "sense_disambiguation"
+    task_type: Literal["sentence", "definition", "collocation"] = "sentence"
     relation: Literal["synonym", "antonym", "hypernym", "hyponym"] | None = None
     related_sense_id: str = ""
     context_sentence: str = ""
@@ -115,9 +120,15 @@ def validate_questions(
                 problems.append(
                     f"{q.id}: sense_disambiguation question without context_sentence"
                 )
-            elif q.target_word.lower() not in q.context_sentence.lower():
+            elif q.task_type == "sentence":
+                if q.target_word.lower() not in q.context_sentence.lower():
+                    problems.append(
+                        f"{q.id}: target_word '{q.target_word}' not found in context_sentence"
+                    )
+            elif q.target_word.lower() not in q.question.lower():
+                # definition / collocation queries need not contain the target word
                 problems.append(
-                    f"{q.id}: target_word '{q.target_word}' not found in context_sentence"
+                    f"{q.id}: target_word '{q.target_word}' not found in question"
                 )
         if senses is not None:
             if q.gold_sense_id not in senses:

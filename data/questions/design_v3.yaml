@@ -1,0 +1,89 @@
+# v3: generated definition -> sense and collocation -> sense questions.
+#
+# These are NOT new hand-written sentences: the query is taken from the dictionary
+# itself (the sense's indicator, or one of its collocations), so the gold is the
+# sense that owns the query by construction. That makes them cheap to build and
+# hard to dispute - the remaining risk is that the indicator/collocation is
+# ambiguous between senses, which the builder measures (distinctive vs shared)
+# and which a lexicographer should still confirm.
+#
+# Design cells:
+#   A_<shallow|buried>_<distinctive|shared>   definition queries
+#   B_<shallow|buried>_<visible|hidden>       collocation queries
+#
+# `visible` means the collocation is among the first `displayed` (8) collocations
+# shown in the context block; `hidden` means it is further down the dictionary's
+# collocation list, so the model cannot string-match it from the context - only
+# the graph's ranking knows it.
+#
+# Cap is 3, as in the sentence design: shallow = position 1-3, buried = 4+.
+
+definitions:
+  lemmas:
+    - boks
+    - paličica
+    - polniti
+    - vezati
+    - rezati
+    - obdelati
+    - zavrteti
+    - pozicija
+    - vezava
+    - transformacija
+    - zviševanje
+    - preusmeritev
+    - povleči
+    - odvzeti
+    - zapirati
+    - kolo
+    - pero
+    - list
+    - miš
+    - greda
+    - srce
+    - jabolko
+    - obraz
+    - vlak
+    - zvezda
+  per_cell: 8
+
+collocations:
+  lemmas:
+    - boks
+    - paličica
+    - polniti
+    - vezati
+    - rezati
+    - obdelati
+    - zavrteti
+    - pozicija
+    - vezava
+    - transformacija
+    - zviševanje
+    - preusmeritev
+    - povleči
+    - odvzeti
+    - zapirati
+    - kolo
+    - pero
+    - miš
+    - srce
+    - jabolko
+    - obraz
+    - vlak
+  per_cell: 5
+  displayed: 8
+  # manual curation: the dictionary's collocation list also contains corpus
+  # clauses; these were inspected and rejected by hand
+  exclude:
+    - "pogodba ne veže"
+    - "mraz reže"
+    - "voz povleče"
+    - "meja ne zapira"
+    - "atomi se vežejo"
+    - "noži režejo"
+    - "možgani obdelajo"
+    - "postaje zavrtijo"
+    - "gostitelji se povlečejo"
+    - "blagajna se polni"
+    - "tok povleče"

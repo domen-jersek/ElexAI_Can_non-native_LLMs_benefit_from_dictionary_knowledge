@@ -95,6 +95,189 @@ def relation_cell(gold: dict, related: dict, relation: str) -> tuple[str, float]
     return f"R_{relation}_{'overlap' if jac >= 0.05 else 'disjoint'}", jac
 
 
+DISPLAYED_COLLOCATIONS = 8  # the context block shows at most this many "Zveze"
+
+
+def _indicator(rec: dict) -> str:
+    definitions = rec.get("definitions", [])
+    return definitions[0]["text"].strip() if definitions else ""
+
+
+def _indicator_is_distinctive(indicator: str, senses: list[dict]) -> bool:
+    key = indicator.strip().lower()
+    return sum(1 for s in senses if _indicator(s).lower() == key) == 1
+
+
+def _collocation_candidates(
+    rec: dict, lemma: str, pos_of: dict[str, str]
+) -> list[tuple[int, str]]:
+    """(index, text) of clean multi-word collocations.
+
+    Keeps noun/adjective phrases (``garažni boks``, ``kartonska paličica``) and
+    drops phrases built around a generic verb (``natakniti na paličice``), which
+    the dictionary's corpus-derived collocation list also contains but which are
+    not characteristic of the sense.
+    """
+    out: list[tuple[int, str]] = []
+    for index, (_sid, text) in enumerate(rec.get("dependencies", [])):
+        text = text.strip()
+        if len(text.split()) < 2:
+            continue
+        if not content_stems(text, exclude_prefixes=(lemma[:4],)):
+            continue
+        tokens = [token.lower() for token in text.split()]
+        if any(pos_of.get(token) == "verb" for token in tokens):
+            continue
+        # the dictionary's collocation list also contains corpus clauses
+        # ("blagajna se polni", "noži režejo") - keep noun/adjective phrases only
+        if "se" in tokens or any(token.endswith("jo") for token in tokens):
+            continue
+        out.append((index, text))
+    return out
+
+
+def _collocation_is_distinctive(
+    collocation: str, gold: dict, senses: list[dict], lemma: str
+) -> bool:
+    stems = content_stems(collocation, exclude_prefixes=(lemma[:4],))
+    if not stems:
+        return False
+    other: set[str] = set()
+    for sense in senses:
+        if sense["sense_id"] != gold["sense_id"]:
+            other |= neighbourhood(sense)
+    return bool(stems - other)
+
+
+def build_definition_questions(
+    spec: dict, by_lemma: dict
+) -> tuple[list[Question], list[dict]]:
+    """Generate definition -> sense questions from the dictionary indicators.
+
+    Only **distinctive** indicators are used: if two senses of the same word share
+    the indicator, the query would have two correct answers and the question would
+    be invalid (this is exactly what the first generation showed for *zvezda*).
+    One question per lemma keeps the set diverse.
+    """
+    cfg = spec.get("definitions") or {}
+    per_cell = int(cfg.get("per_cell", 3))
+    questions: list[Question] = []
+    rows: list[dict] = []
+    counts: Counter = Counter()
+    for lemma in cfg.get("lemmas", []):
+        senses = by_lemma.get((lemma.lower(), "noun")) or by_lemma.get((lemma.lower(), "verb"))
+        if not senses:
+            continue
+        for gold in sorted(senses, key=lambda r: r["position"]):
+            indicator = _indicator(gold)
+            if len(indicator) < 3:
+                continue
+            if not _indicator_is_distinctive(indicator, senses):
+                continue
+            shallow = int(gold["position"]) <= CAP
+            cell = f"A_{'shallow' if shallow else 'buried'}_distinctive"
+            if counts[cell] >= per_cell:
+                continue
+            qid = f"v3-d{len(questions) + 1:03d}"
+            questions.append(
+                Question(
+                    id=qid,
+                    question=(
+                        f"Kateri pomen besede \u00bb{lemma}\u00ab ustreza "
+                        f"razlagi \u00bb{indicator}\u00ab?"
+                    ),
+                    target_word=lemma,
+                    lemma=gold["lemma"],
+                    pos=gold["pos"],
+                    task_type="definition",
+                    context_sentence=indicator,
+                    gold_sense_id=str(gold["sense_id"]),
+                    gold_answer=definition_text(gold),
+                    source_dictionary_version=DICT_VERSION,
+                    notes="Generated from the DDDS indicator; draft until verified.",
+                    design_cell=cell,
+                )
+            )
+            counts[cell] += 1
+            rows.append(
+                {
+                    "id": qid,
+                    "cell": cell,
+                    "lemma": gold["lemma"],
+                    "detail": f"p{gold['position']} {indicator}",
+                }
+            )
+            break  # one definition question per lemma
+    return questions, rows
+
+
+def build_collocation_questions(
+    spec: dict, by_lemma: dict
+) -> tuple[list[Question], list[dict]]:
+    """Generate collocation -> sense questions from the dictionary collocations."""
+    cfg = spec.get("collocations") or {}
+    per_cell = int(cfg.get("per_cell", 3))
+    displayed = int(cfg.get("displayed", DISPLAYED_COLLOCATIONS))
+    excluded = [text.lower() for text in cfg.get("exclude", [])]
+    questions: list[Question] = []
+    rows: list[dict] = []
+    counts: Counter = Counter()
+    pos_of = {lemma: pos for (lemma, pos) in by_lemma}
+    for lemma in cfg.get("lemmas", []):
+        senses = by_lemma.get((lemma.lower(), "noun")) or by_lemma.get((lemma.lower(), "verb"))
+        if not senses:
+            continue
+        added = False
+        for gold in sorted(senses, key=lambda r: r["position"]):
+            shallow = int(gold["position"]) <= CAP
+            for index, collocation in _collocation_candidates(gold, lemma, pos_of):
+                if any(text in collocation.lower() for text in excluded):
+                    continue
+                if not _collocation_is_distinctive(collocation, gold, senses, lemma):
+                    continue
+                visible = index < displayed
+                cell = (
+                    f"B_{'shallow' if shallow else 'buried'}"
+                    f"_{'visible' if visible else 'hidden'}"
+                )
+                if counts[cell] >= per_cell:
+                    continue
+                qid = f"v3-c{len(questions) + 1:03d}"
+                questions.append(
+                    Question(
+                        id=qid,
+                        question=(
+                            f"Kateri pomen besede \u00bb{lemma}\u00ab je uporabljen "
+                            f"v zvezi \u00bb{collocation}\u00ab?"
+                        ),
+                        target_word=lemma,
+                        lemma=gold["lemma"],
+                        pos=gold["pos"],
+                        task_type="collocation",
+                        context_sentence=collocation,
+                        gold_sense_id=str(gold["sense_id"]),
+                        gold_answer=definition_text(gold),
+                        source_dictionary_version=DICT_VERSION,
+                        notes="Generated from the DDDS collocation; draft until verified.",
+                        design_cell=cell,
+                    )
+                )
+                counts[cell] += 1
+                rows.append(
+                    {
+                        "id": qid,
+                        "cell": cell,
+                        "lemma": gold["lemma"],
+                        "detail": f"p{gold['position']} {'visible' if visible else 'hidden'} {collocation}",
+                    }
+                )
+                added = True
+                break  # one collocation per sense is enough
+            if added:
+                break  # one collocation question per lemma
+    return questions, rows
+
+
 def build_relation_question(spec: dict, gold: dict, related: dict) -> Question:
     relation = spec["relation"]
     label = RELATION_LABEL[relation]
@@ -271,6 +454,15 @@ def main() -> int:
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
         return 1
+
+    # ---- generated definition / collocation questions (v3) -----------------
+    definition_questions, definition_rows = build_definition_questions(spec, by_lemma)
+    records.extend(definition_questions)
+    report.extend(definition_rows)
+
+    collocation_questions, collocation_rows = build_collocation_questions(spec, by_lemma)
+    records.extend(collocation_questions)
+    report.extend(collocation_rows)
 
     problems = validate_questions(records, {str(k): v["lemma"] for k, v in core.items()})
     if problems:
