@@ -10,13 +10,16 @@ import yaml
 from elexai.analysis import (
     accuracy_frame,
     bootstrap_ci,
+    cell_comparison,
     correctness_matrix,
     coverage_frame,
     find_run,
     find_run_with_questions,
     find_runs,
+    holm_bonferroni,
     load_answers,
     mcnemar_exact,
+    paired_diff_ci,
     payoff_table,
 )
 
@@ -232,3 +235,43 @@ def test_payoff_table(tmp_path):
     assert s2["c_position"] == 1
     assert s2["d_rank"] == 2
     assert bool(s2["signal"]) is False
+
+
+def test_paired_diff_ci_and_holm():
+    # perfect separation: D right on all 10, C wrong on all 10
+    lo, hi = paired_diff_ci([(False, True)] * 10)
+    assert lo == 1.0 and hi == 1.0
+    # no difference -> CI contains zero
+    lo, hi = paired_diff_ci([(True, True), (False, False), (True, False), (False, True)])
+    assert lo <= 0.0 <= hi
+    # Holm: [0.01, 0.03, 0.04] -> [0.03, 0.06, 0.06]
+    adjusted = holm_bonferroni([0.01, 0.03, 0.04])
+    assert adjusted == [0.03, 0.06, 0.06]
+
+
+def test_cell_comparison():
+    import pandas as pd
+
+    rows = []
+    for i in range(10):
+        cell = "S3_buried_cued"
+        rows.append(
+            {"question_id": f"q{i}", "design_cell": cell, "variant": "C", "correct": False}
+        )
+        rows.append(
+            {
+                "question_id": f"q{i}",
+                "design_cell": cell,
+                "variant": "D",
+                "correct": i < 9,  # 9/10
+            }
+        )
+    df = pd.DataFrame(rows)
+    result = cell_comparison(df, "S3_buried_cued")
+    assert result["n"] == 10
+    assert result["C"] == 0.0
+    assert result["D"] == 0.9
+    assert result["second_only"] == 9
+    assert result["first_only"] == 0
+    assert result["p"] < 0.01
+    assert result["ci_low"] > 0

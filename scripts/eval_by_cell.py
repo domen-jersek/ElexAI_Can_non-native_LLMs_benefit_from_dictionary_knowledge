@@ -24,7 +24,12 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from elexai.analysis import load_questions_table
+from elexai.analysis import (
+    holm_bonferroni,
+    load_questions_table,
+    mcnemar_exact,
+    paired_diff_ci,
+)
 from elexai.env import REPO_ROOT
 
 VARIANT_ORDER = ["A", "B", "C", "D", "oracle"]
@@ -40,6 +45,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True, help="run id (directory name under runs/)")
     ap.add_argument("--csv", type=Path, default=None, help="also write the long table")
+    ap.add_argument(
+        "--stats",
+        action="store_true",
+        help="paired McNemar C-vs-D tests per sense cell (Holm-corrected)",
+    )
     args = ap.parse_args()
 
     run_dir = REPO_ROOT / "runs" / args.run
@@ -89,6 +99,52 @@ def main() -> int:
     sense = table[table.index.str.startswith("S")].copy()
     sense["D-C"] = (sense["D"] - sense["C"]).round(3)
     print(sense[["C", "D", "D-C"]].to_string())
+
+    if args.stats:
+        print()
+        print("paired C vs D per sense cell (McNemar exact; Holm over sense cells):")
+        rows: list[dict] = []
+        for cell in sorted(pq["design_cell"].unique()):
+            if not cell.startswith("S"):
+                continue
+            sub = pq[(pq["design_cell"] == cell) & (pq["variant"].isin(["C", "D"]))]
+            pivot = sub.pivot_table(
+                index="question_id", columns="variant", values="correct", aggfunc="first"
+            ).dropna()
+            if pivot.empty:
+                continue
+            a = pivot["C"].astype(bool)
+            b = pivot["D"].astype(bool)
+            n10 = int((a & ~b).sum())
+            n01 = int((~a & b).sum())
+            lo, hi = paired_diff_ci(list(zip(a, b, strict=True)))
+            rows.append(
+                {
+                    "cell": cell,
+                    "n": int(len(pivot)),
+                    "C": round(float(a.mean()), 3),
+                    "D": round(float(b.mean()), 3),
+                    "D-C": round(float(b.mean() - a.mean()), 3),
+                    "C_only": n10,
+                    "D_only": n01,
+                    "p": mcnemar_exact(n10, n01),
+                    "ci_low": round(lo, 3),
+                    "ci_high": round(hi, 3),
+                }
+            )
+        if rows:
+            adjusted = holm_bonferroni([row["p"] for row in rows])
+            for row, p_adj in zip(rows, adjusted, strict=True):
+                row["p_holm"] = p_adj
+            print(
+                pd.DataFrame(rows)[
+                    ["cell", "n", "C", "D", "D-C", "C_only", "D_only", "p", "p_holm", "ci_low", "ci_high"]
+                ].to_string(index=False)
+            )
+            print(
+                "note: the discordant counts are the evidence; N per cell is small "
+                "(S1=4, S4=5), so only the S3 effect is expected to survive."
+            )
 
     if (pq["phenomena"] != "").any():
         print()

@@ -304,6 +304,8 @@ def load_answers(
                 "retrieved_scores": [float(x["score"]) for x in (r.get("retrieved") or [])],
                 "relation": m["relation"] if m is not None else r.get("relation"),
                 "related_sense_id": m["related_sense_id"] if m is not None else None,
+                "design_cell": m["design_cell"] if m is not None else "",
+                "phenomena": m["phenomena"] if m is not None else [],
                 "prompt": r.get("prompt"),
             }
         )
@@ -476,3 +478,72 @@ def bootstrap_ci(k: int, n: int, *, iters: int = 20000, seed: int = 0) -> tuple[
     rng = np.random.default_rng(seed)
     draws = rng.binomial(n, k / n, size=iters) / n
     return float(np.percentile(draws, 2.5)), float(np.percentile(draws, 97.5))
+
+
+def paired_diff_ci(
+    pairs: list[tuple[bool, bool]], *, iters: int = 20000, seed: int = 0
+) -> tuple[float, float]:
+    """95% percentile bootstrap CI for the difference of two PAIRED proportions.
+
+    ``pairs`` are (first_variant_correct, second_variant_correct) for the same
+    questions; resampling is over questions, so the pairing is preserved.
+    """
+    if not pairs:
+        return (float("nan"), float("nan"))
+    arr = np.array(pairs, dtype=float)
+    rng = np.random.default_rng(seed)
+    n = len(arr)
+    idx = rng.integers(0, n, size=(iters, n))
+    diffs = arr[idx, 1].mean(axis=1) - arr[idx, 0].mean(axis=1)
+    return float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5))
+
+
+def holm_bonferroni(pvalues: list[float]) -> list[float]:
+    """Holm-Bonferroni adjusted p-values (family-wise error control)."""
+    m = len(pvalues)
+    order = sorted(range(m), key=lambda i: pvalues[i])
+    adjusted = [1.0] * m
+    running = 0.0
+    for rank, index in enumerate(order):
+        value = min(1.0, (m - rank) * pvalues[index])
+        running = max(running, value)
+        adjusted[index] = running
+    return adjusted
+
+
+def cell_comparison(
+    df: pd.DataFrame,
+    cell: str,
+    *,
+    first: str = "C",
+    second: str = "D",
+) -> dict:
+    """Paired comparison of two variants inside one design cell.
+
+    ``df`` is the output of :func:`load_answers` (needs ``design_cell`` and
+    ``correct``). Returns n, both accuracies, the difference, the discordant
+    counts, the exact McNemar p-value and the bootstrap CI of the difference.
+    """
+    sub = df[(df["design_cell"] == cell) & (df["variant"].isin([first, second]))]
+    pivot = sub.pivot_table(
+        index="question_id", columns="variant", values="correct", aggfunc="first"
+    ).dropna()
+    if pivot.empty:
+        return {"cell": cell, "n": 0}
+    a = pivot[first].astype(bool)
+    b = pivot[second].astype(bool)
+    n10 = int((a & ~b).sum())  # first right, second wrong
+    n01 = int((~a & b).sum())  # first wrong, second right
+    lo, hi = paired_diff_ci(list(zip(a, b, strict=True)))
+    return {
+        "cell": cell,
+        "n": int(len(pivot)),
+        first: round(float(a.mean()), 3),
+        second: round(float(b.mean()), 3),
+        "diff": round(float(b.mean() - a.mean()), 3),
+        "first_only": n10,
+        "second_only": n01,
+        "p": mcnemar_exact(n10, n01),
+        "ci_low": round(lo, 3),
+        "ci_high": round(hi, 3),
+    }
