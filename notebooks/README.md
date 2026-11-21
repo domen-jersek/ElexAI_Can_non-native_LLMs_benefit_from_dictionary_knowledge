@@ -16,6 +16,7 @@ artifacts under `runs/` and the committed question set - no LLM calls are made.
 | 6 | `06_model_comparison.ipynb` | Four models on the same questions: the two API models (base `gpt-6-luna`, `gemini-4-argon`) vs the two Slovene GaMS 12B chat models (Instruct and its "-RAG" sibling), their error profiles, the figurative-sense failures, and the measured repeatability (noise floor ~1 question in 12). |
 | 7 | `07_design_evaluation.ipynb` | The v2 **designed** set: the four sense cells and the relation cells, C vs D per cell across five models, the exact McNemar + Holm statistics, the `--b-lemma` repair, the budget curve, and an explicit section on what an oracle is and why it is not a mathematical ceiling. |
 | 8 | `08_what_the_graph_buys.ipynb` | Five questions, one figure each: when the graph helps (cue dose-response), the two levers (search scope vs candidate order), the coverage cliff at position 4, a per-question map of who fails on what, and whether model size matters; plus a diagnosis table that separates "the model does not recognise the reading" from "the list/ranking failed". |
+| 9 | `09_task_types_and_models.ipynb` | Four task types (sentence, definition, collocation, relation) under the same methods, the definition/collocation cells (buried/hidden), and the native-vs-non-native comparison - which turns out to be a tie in the aggregate, with the non-native advantage confined to the figurative subset. |
 
 **How to run / regenerate**
 

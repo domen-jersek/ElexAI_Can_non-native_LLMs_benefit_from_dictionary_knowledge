@@ -748,6 +748,64 @@ The analysis helper `analysis.cue_hits` uses the same stemmer/stopwords/cue
 definition as the question builder (`src/elexai/text.py`), so the design and the
 analysis cannot drift apart.
 
+## D-034 (2026-11-21) - New task types: definition and collocation queries (v3)
+
+The v2 set is one task type (sentence WSD) plus relations. To test whether the
+graph's advantage is specific to sentences, two more query types were added,
+generated from the dictionary itself (`data/questions/questions_v3.jsonl`,
+spec `design_v3.yaml`):
+
+- **definition -> sense** (16 questions): the query is the sense's dictionary
+  indicator (e.g. "biokemijsko ali kemijsko spajanje"); the gold is the sense
+  that owns it. Only **distinctive** indicators are used - a shared indicator
+  would make two senses correct (the first generation produced exactly that for
+  *zvezda* and was rejected).
+- **collocation -> sense** (13 questions): the query is a dictionary collocation
+  (e.g. "garažni boks"); the gold is the sense that owns it. One question per
+  lemma; the dictionary's collocation list also contains corpus clauses
+  ("blagajna se polni", "noži režejo"), which were filtered by a verb/reflexive
+  rule and a short manual exclude list.
+
+Design cells: `A_<shallow|buried>_distinctive` for definitions (cap 3, so
+position 1-3 vs 4+), and `B_<shallow|buried>_<visible|hidden>` for collocations,
+where `hidden` means the collocation is beyond the first 8 shown in the context
+block - the model cannot string-match it, but the graph's ranking knows it.
+
+Results (cap 3, three models):
+
+| cell | C (luna / 12B / 9B) | D |
+|---|---|---|
+| A shallow | 1.00 / 1.00 / 1.00 | 1.00 / 1.00 / 1.00 |
+| A buried | **0.00 / 0.00 / 0.00** | **1.00 / 1.00 / 0.88** |
+| B shallow visible | 1.00 / 0.80 / 0.80 | 1.00 / 0.80 / 0.80 |
+| B shallow hidden | 0.60 / 0.80 / 0.80 | **1.00 / 1.00 / 1.00** |
+| B buried visible | 0.00 / 0.00 / 0.00 | 1.00 / 1.00 / 1.00 |
+| B buried hidden | 0.00 (n=1) | 1.00 (n=1) |
+
+The graph's advantage **generalises** from sentences to definitions and
+collocations: it repairs the buried and hidden cases and leaves the visible ones
+unchanged. Overall v3: C 0.55, D 1.00 / 0.97 / 0.93, B 0.52 / 0.52 / 0.48.
+
+**The oracle is lower than D on this set** (0.86 / 0.86 / 0.79 vs 1.00 / 0.97 /
+0.93). Nothing is broken: the oracle prompt is different (gold + up to four
+neighbours, capped at five, in dictionary order), and the longer, less focused
+list makes the model pick a neighbour. This is the second concrete example that
+the oracle is an empirical control, not a mathematical ceiling (D-032, notebook
+07).
+
+**Native vs non-native.** On all four task aggregates the native GaMS models and
+the non-native luna are nearly identical, and they converge under D. The
+non-native advantage is confined to the **figurative subset** of the sentence task
+(composition, not dictionary access). Being a native model is not the same as
+being better at using a dictionary; the Lex model remains the missing cell.
+
+The v2 sentence/relation block is **kept** as its own block; v3 is an extension,
+not a replacement (the two answer different questions and share the models).
+
+Caveats: the new questions are generated from the dictionary (drafts until
+verified), the hidden-collocation cells are small (n = 1-5), and one question per
+lemma keeps the set diverse but limits N.
+
 Consequences:
 
 - every v2 number reported after this point comes from the fixed ranker; the

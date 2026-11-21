@@ -158,6 +158,7 @@ def load_questions_table(path: Path = QUESTIONS_PATH) -> pd.DataFrame:
             {
                 "question_id": q.id,
                 "question_type": q.question_type,
+                "task_type": q.task_type,
                 "flags": q.flags,
                 "is_trick": "trick" in q.flags,
                 "lemma": q.lemma,
@@ -304,6 +305,7 @@ def load_answers(
                 "variant": variant,
                 "question_id": qid,
                 "question_type": m["question_type"] if m is not None else r.get("question_type"),
+                "task_type": m["task_type"] if m is not None else "sentence",
                 "is_trick": bool(m["is_trick"]) if m is not None else False,
                 "lemma": r.get("lemma"),
                 "gold_sense_id": gold,
