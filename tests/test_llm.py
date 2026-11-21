@@ -75,6 +75,34 @@ def test_client_missing_key_raises():
         client.complete("prompt")
 
 
+def test_client_retries_on_empty_content(monkeypatch):
+    """A 200 with content=None is a retryable provider hiccup, not an answer."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": None}, "finish_reason": "stop"}]}
+            )
+        return _ok_response("SENSE_ID: none\nODGOVOR: ok")
+
+    monkeypatch.setenv("TEST_API_KEY", "secret")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    cfg = LlmConfig(base_url="https://example.invalid/v1", model="test/model", api_key_env="TEST_API_KEY")
+    client = LlmClient(cfg, None, transport=_mock_transport(handler))
+    result = client.complete("p")
+    assert result.text.startswith("SENSE_ID: none")
+    assert calls["n"] == 2
+
+
+def test_parse_output_tolerates_none():
+    from elexai.runner.run import parse_output
+
+    assert parse_output(None) == (None, "")
+    assert parse_output("") == (None, "")
+
+
 def test_client_retries_on_429(monkeypatch):
     calls = {"n": 0}
 

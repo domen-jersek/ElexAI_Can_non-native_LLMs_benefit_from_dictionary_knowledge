@@ -49,8 +49,13 @@ _SENSE_ID_RE = re.compile(r"SENSE_ID:\s*(\d+|none)", re.IGNORECASE)
 _ANSWER_RE = re.compile(r"ODGOVOR:\s*(.*)", re.IGNORECASE | re.DOTALL)
 
 
-def parse_output(text: str) -> tuple[str | None, str]:
-    """Extract (cited sense id or None, answer text) from a model output."""
+def parse_output(text: str | None) -> tuple[str | None, str]:
+    """Extract (cited sense id or None, answer text) from a model output.
+
+    ``None`` is tolerated (an empty provider response) and parsed as no answer;
+    the client retries those, so this is only a last-resort guard.
+    """
+    text = text or ""
     m = _SENSE_ID_RE.search(text)
     sense_id = m.group(1) if m and m.group(1).lower() != "none" else None
     a = _ANSWER_RE.search(text)

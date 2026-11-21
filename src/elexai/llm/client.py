@@ -87,7 +87,15 @@ class LlmClient:
                     raise LlmError(f"HTTP {response.status_code}: {response.text[:300]}")
                 response.raise_for_status()
                 data = response.json()
-                text = data["choices"][0]["message"]["content"]
+                choice = data["choices"][0]
+                text = choice["message"].get("content")
+                if not text:
+                    # a 200 with empty content happens (provider hiccup, refusal,
+                    # or a reasoning model that spent its budget) - treat it as a
+                    # retryable error, never as a successful empty answer
+                    raise LlmError(
+                        f"empty response content (finish_reason={choice.get('finish_reason')!r})"
+                    )
                 latency_ms = (time.perf_counter() - t0) * 1000
                 if self.cache is not None and key is not None:
                     self.cache.put(
