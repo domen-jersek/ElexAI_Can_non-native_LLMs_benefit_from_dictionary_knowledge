@@ -23,6 +23,8 @@ import pandas as pd
 import yaml
 
 from elexai.questions import load_questions
+from elexai.retrieval.chunks import SenseChunk
+from elexai.text import content_stems
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNS_DIR = REPO_ROOT / "runs"
@@ -198,6 +200,37 @@ def load_senses_table(path: Path = LEXICAL_CORE) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     df["n_senses_lemma"] = df.groupby("lemma")["sense_id"].transform("count")
     return df
+
+
+def _chunk_neighbourhood(chunk: SenseChunk) -> set[str]:
+    parts = [chunk.definition]
+    parts += [text for _sid, text in chunk.dependencies]
+    parts += [lemma for _sid, lemma in chunk.synonyms]
+    return content_stems(" ".join(parts))
+
+
+def cue_hits(
+    sentence: str,
+    gold: SenseChunk,
+    siblings: list[SenseChunk],
+    *,
+    target_word: str,
+) -> list[str]:
+    """Distinctive cue stems of the sentence for ``gold`` (the v2 design measure).
+
+    A cue is a content-word stem that appears in the gold sense's dictionary
+    neighbourhood (definition + collocations + synonyms) and in no other sense of
+    the same lemma. This is the same definition the question builder uses, so the
+    analysis and the design cannot drift apart.
+    """
+    exclude = (gold.lemma.lower()[:4], target_word.lower()[:4])
+    sentence_stems = content_stems(sentence, exclude_prefixes=exclude)
+    gold_nb = _chunk_neighbourhood(gold)
+    other_nb: set[str] = set()
+    for other in siblings:
+        if other.sense_id != gold.sense_id:
+            other_nb |= _chunk_neighbourhood(other)
+    return sorted(sentence_stems & gold_nb - other_nb)
 
 
 @lru_cache(maxsize=4)

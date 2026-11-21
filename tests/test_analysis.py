@@ -13,6 +13,7 @@ from elexai.analysis import (
     cell_comparison,
     correctness_matrix,
     coverage_frame,
+    cue_hits,
     find_run,
     find_run_with_questions,
     find_runs,
@@ -22,6 +23,7 @@ from elexai.analysis import (
     paired_diff_ci,
     payoff_table,
 )
+from elexai.retrieval.chunks import SenseChunk
 
 QUESTIONS = [
     {
@@ -247,6 +249,33 @@ def test_paired_diff_ci_and_holm():
     # Holm: [0.01, 0.03, 0.04] -> [0.03, 0.06, 0.06]
     adjusted = holm_bonferroni([0.01, 0.03, 0.04])
     assert adjusted == [0.03, 0.06, 0.06]
+
+
+def test_cue_hits_uses_the_builder_definition():
+    gold = SenseChunk(
+        sense_id="10",
+        lemma="boks",
+        pos="noun",
+        position=4,
+        definition="ločen prostor",
+        dependencies=(("1", "garažni boks"),),
+    )
+    other = SenseChunk(
+        sense_id="11",
+        lemma="boks",
+        pos="noun",
+        position=1,
+        definition="borilni šport",
+        dependencies=(("2", "trenirati boks"),),
+    )
+    hits = cue_hits(
+        "Sosed v garažnem boksu shranjuje orodje.", gold, [gold, other], target_word="boksu"
+    )
+    assert hits == ["garaž"]
+    # the target form and the lemma are never cues
+    assert cue_hits("boks boksu", gold, [gold, other], target_word="boksu") == []
+    # no overlap -> no cue
+    assert cue_hits("Nekaj je na mizi.", gold, [gold, other], target_word="boks") == []
 
 
 def test_cell_comparison():

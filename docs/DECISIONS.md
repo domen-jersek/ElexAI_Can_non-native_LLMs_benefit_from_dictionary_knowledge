@@ -714,6 +714,40 @@ small on cued items (B-lemma 0.93 vs D 1.00) but complementary on uncued items
 dictionary cue, the graph cannot. This must be stated in the analysis - the
 methods are not strictly ordered.
 
+## D-033 (2026-11-21) - Analysis round 2: five figures, one message each
+
+`notebooks/08_what_the_graph_buys.ipynb` presents the analysis as five figures
+with one message each, deliberately avoiding the same result in five costumes:
+
+1. **Cue dose-response** (`08_dose_response.png`). Questions binned by the number
+   of distinctive cue words. D rises with cues (0.56 -> 0.97 -> 1.00); C *falls*
+   (0.56 -> 0.38 -> 0.09) because the design attaches cues to the buried cases.
+   One picture for "no cue, no gain".
+2. **Two levers** (`08_two_levers.png`). B -> B-lemma (search scope) and C -> D
+   (candidate order) side by side per cell. Scope is the dominant lever; order
+   only matters in S3/S4.
+3. **Coverage cliff** (`08_coverage_cliff.png`). Gold position 1/2/3/4+, split by
+   cue presence. C falls at position 4 in both panels; D removes the cliff only
+   in the cued panel; without a cue C and D are identical. The first version of
+   this figure pooled the two panels and was **confounded** (position vs cue) -
+   fixed before publishing, and the fix is part of the record.
+4. **Per-question map** (`08_question_map.png`). 36 sense questions x
+   (B-lemma, C, D, oracle). The S3 block is red under C and green under D; S4 is
+   red for everyone. Shows that the effect is a block, not a few lucky items.
+5. **Model size** (`08_model_size.png`). S3 accuracy of D: 9B 1.00, 12B 1.00,
+   27B 0.93, luna 1.00, Gemini 1.00. The method carries the result.
+
+The qualitative table separates the remaining failures by the **oracle** column:
+"the model does not recognise the reading" (q-025 *morski list*, q-026
+*jabolko* = tree - the oracle fails too) vs "the gold is usable but the
+list/ranking failed" (q-029, v2-041/042/043 - the oracle succeeds). This is the
+distinction that matters for the next step: better ranking fixes the second
+kind, nothing in the pipeline fixes the first.
+
+The analysis helper `analysis.cue_hits` uses the same stemmer/stopwords/cue
+definition as the question builder (`src/elexai/text.py`), so the design and the
+analysis cannot drift apart.
+
 Consequences:
 
 - every v2 number reported after this point comes from the fixed ranker; the

@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -34,7 +33,7 @@ import yaml
 
 from elexai.env import REPO_ROOT
 from elexai.questions import Question, load_questions, validate_questions
-from elexai.text import stem
+from elexai.text import content_stems
 
 CORE = REPO_ROOT / "data" / "processed" / "ddds" / "lexical_core.jsonl"
 V1 = REPO_ROOT / "data" / "questions" / "questions.jsonl"
@@ -51,27 +50,6 @@ RELATION_LABEL = {
     "hyponym": "podpomenka",
 }
 
-STOP = set(
-    """in v na za se je ki da s z k o ob po do od iz pri ter ali pa tudi ne ni naj
-    bolj zelo kot med brez ga mu ji jih nje njega svoj svoja svoje biti sem
-    si smo ste so bil bila bilo bili torej zato ker ce cez proti kdo kaj
-    kateri katera katero ta to tega temu tem temvec ampak""".split()
-)
-WORD = re.compile(r"[a-z\u010d\u0161\u017e\u0107\u0111\u00e1\u00e9\u00ed\u00f3\u00fa]+", re.IGNORECASE)
-
-
-def content_words(text: str, *, exclude_prefixes: tuple[str, ...] = ()) -> set[str]:
-    """Content-word stems; stopwords and the target word's forms removed."""
-    out: set[str] = set()
-    for token in (w.lower() for w in WORD.findall(text or "")):
-        if len(token) < 3 or token in STOP:
-            continue
-        if any(token.startswith(prefix) for prefix in exclude_prefixes if prefix):
-            continue
-        out.add(stem(token))
-    return out
-
-
 def definition_text(rec: dict) -> str:
     return " | ".join(d.get("text", "") for d in rec.get("definitions", []) if d.get("text"))
 
@@ -81,7 +59,7 @@ def neighbourhood(rec: dict) -> set[str]:
     parts = [definition_text(rec)]
     parts += [text for _sid, text in rec.get("dependencies", [])]
     parts += [text for _sid, text in rec.get("synonyms", [])]
-    return content_words(" ".join(parts))
+    return content_stems(" ".join(parts))
 
 
 def classify_sense(
@@ -89,7 +67,7 @@ def classify_sense(
 ) -> tuple[str, list[str], int]:
     """Derive the design cell from measured position and cue hits."""
     exclude = (gold["lemma"].lower()[:4], target_word.lower()[:4])
-    sentence_words = content_words(sentence, exclude_prefixes=exclude)
+    sentence_words = content_stems(sentence, exclude_prefixes=exclude)
     gold_nb = neighbourhood(gold)
     other_nb: set[str] = set()
     for other in senses:
@@ -111,8 +89,8 @@ def classify_sense(
 
 
 def relation_cell(gold: dict, related: dict, relation: str) -> tuple[str, float]:
-    a = content_words(definition_text(gold))
-    b = content_words(definition_text(related))
+    a = content_stems(definition_text(gold))
+    b = content_stems(definition_text(related))
     jac = len(a & b) / max(1, len(a | b))
     return f"R_{relation}_{'overlap' if jac >= 0.05 else 'disjoint'}", jac
 
@@ -323,3 +301,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -9,7 +9,7 @@ import pytest
 
 from elexai.env import REPO_ROOT
 from elexai.questions import load_questions, validate_questions
-from elexai.text import stem
+from elexai.text import content_stems, stem
 
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import build_questions_v2 as builder  # noqa: E402
@@ -25,7 +25,7 @@ def test_stemmer_meets_inflections_but_keeps_words_apart():
 
 
 def test_content_words_drops_stopwords_and_target_forms():
-    words = builder.content_words(
+    words = content_stems(
         "S paličicami je nabadal koščke piščanca.", exclude_prefixes=("pali",)
     )
     assert "nabad" in words
