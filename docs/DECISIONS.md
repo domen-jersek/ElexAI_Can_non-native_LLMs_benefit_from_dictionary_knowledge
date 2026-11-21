@@ -784,7 +784,17 @@ Results (cap 3, three models):
 
 The graph's advantage **generalises** from sentences to definitions and
 collocations: it repairs the buried and hidden cases and leaves the visible ones
-unchanged. Overall v3: C 0.55, D 1.00 / 0.97 / 0.93, B 0.52 / 0.52 / 0.48.
+unchanged. Overall v3: C 0.55, D 1.00 / 0.97 / 0.93, B 0.52 / 0.52 / 0.48;
+adding 27B and Gemini: C 0.55, D 1.00, oracle 0.83-0.86 (below D).
+
+**The hidden collocation is the graph's unique case.** Restricting text search to
+the target word (`--b-lemma`) lifts the v3 overall B from 0.52 to **0.83** (luna)
+/ **0.79** (12B) and the definition questions from 0.50-0.62 to **1.00**, but
+leaves the hidden-collocation questions at **0.40** - a collocation
+is not part of the sense's definition, so no definition-based search can find it.
+The graph reaches **1.00** there because it links the sense to its collocations.
+This is the cleanest evidence that the graph carries knowledge the context does
+not contain; everywhere else it mostly re-orders what is already visible.
 
 **The oracle is lower than D on this set** (0.86 / 0.86 / 0.79 vs 1.00 / 0.97 /
 0.93). Nothing is broken: the oracle prompt is different (gold + up to four
