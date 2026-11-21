@@ -28,6 +28,9 @@ build/
 /manual_kit/
 /review/
 
+# --- Harness session exports (local) ---
+session-*.md
+
 # --- OS / editors ---
 .DS_Store
 Thumbs.db

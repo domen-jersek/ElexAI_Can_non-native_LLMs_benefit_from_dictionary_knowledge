@@ -14,6 +14,7 @@ artifacts under `runs/` and the committed question set - no LLM calls are made.
 | 4 | `04_relations.ipynb` | The second question type: explicit links, the retrieval trap, and the honest null result. |
 | 5 | `05_cross_cutting.ipynb` | Citation taxonomy, the free-text metric for variant A, the difficulty profile, statistics (McNemar, bootstrap), limits and next steps. |
 | 6 | `06_model_comparison.ipynb` | Four models on the same questions: the two API models (base `gpt-6-luna`, `gemini-4-argon`) vs the two Slovene GaMS 12B chat models (Instruct and its "-RAG" sibling), their error profiles, the figurative-sense failures, and the measured repeatability (noise floor ~1 question in 12). |
+| 7 | `07_design_evaluation.ipynb` | The v2 **designed** set: the four sense cells and the relation cells, C vs D per cell across five models, the exact McNemar + Holm statistics, the `--b-lemma` repair, the budget curve, and an explicit section on what an oracle is and why it is not a mathematical ceiling. |
 
 **How to run / regenerate**
 

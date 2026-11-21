@@ -658,6 +658,62 @@ construction. The four pre-fix v2 runs
 (`20261120-151004/151010/152135/152212`) are kept as the ablation evidence and
 must not be mixed with post-fix numbers.
 
+## D-032 (2026-11-21) - v2 round 1: the B repair, the budget curve, and the statistics
+
+Round 1 of the designed evaluation added the four things the v2 cells needed
+before a serious analysis: the `--b-lemma` repair, the cap 1/2/12 curve, the
+Gemini reference, and the paired statistics.
+
+**B repair (`--b-lemma`, variant B restricted to the target lemma's senses).**
+The result is large and changes the reading of variant B:
+
+| model | B (whole dictionary) | B-lemma | S3 B -> B-lemma |
+|---|---|---|---|
+| `gpt-6-luna` | 0.31 | **0.65** | 0.47 -> **0.93** |
+| `GaMS3-12B-Instruct` | 0.29 | **0.63** | 0.47 -> **0.93** |
+
+B's problem was **search scope**, not the model: once it searches the lemma's own
+senses, it is competitive with D on cued items. Relations are unchanged by
+construction (`--b-lemma` only applies to sense questions).
+
+**Budget curve (C / D, overall and S3).**
+
+| cap | luna C | luna D | 12B C | 12B D | S3 C / D |
+|---|---|---|---|---|---|
+| 1 | 0.31 | 0.77 | 0.31 | 0.77 | 0.00 / 0.93 |
+| 2 | 0.43 | 0.82 | 0.43 | 0.78 | 0.00 / 0.93 |
+| 3 | 0.47 | 0.86 | 0.45 | 0.82 | 0.00 / 1.00 |
+| 12 | 0.90 | 0.96 | - | - | 1.00 / 1.00 |
+
+The S3 effect holds at every cap. At cap 12 the **sense** cells are identical for
+C and D (both 1.00: coverage is complete), and the remaining aggregate gap
+(0.90 vs 0.96) comes from the **disjoint relation** cells (C 0.33 on antonyms,
+0.83 on synonyms; D 1.00) plus the S4 composition cases. This is the precise
+version of "C = D at full context": true for sense questions, false for
+relations.
+
+**Statistics (v2, cap 3).** Exact McNemar on the S3 discordant pairs: 0 vs 15,
+p = 6.1e-5, Holm-adjusted p = 2.4e-4, paired bootstrap 95 % CI of the difference
+[1.00, 1.00]. S1, S2 and S4 show no difference, as predicted. The test lives in
+`elexai.analysis.cell_comparison` and is printed by `eval_by_cell.py --stats`.
+
+**Gemini on v2 (cap 3).** A 0.19, B 0.31, C 0.47, D 0.86, oracle 0.98. Same cell
+pattern; notably its S4 oracle is 1.00 (Gemini can compose the no-cue cases when
+the gold is shown, the other models cannot) - the no-cue failures of the smaller
+models are composition, not coverage.
+
+**Robustness.** The first Gemini run crashed on a provider response with
+`content=None` (HTTP 200). The client now treats an empty response as a retryable
+error, and `parse_output` tolerates `None`; tests cover both. The run was
+re-executed from the cache.
+
+**Reading.** The big C -> D gain on S3 is a **coverage** effect (C cannot show the
+gold). The marginal gain of the graph over a lemma-restricted text retriever is
+small on cued items (B-lemma 0.93 vs D 1.00) but complementary on uncued items
+(B-lemma 0.40 vs D 0.00 on S4): text similarity can sometimes recover without a
+dictionary cue, the graph cannot. This must be stated in the analysis - the
+methods are not strictly ordered.
+
 Consequences:
 
 - every v2 number reported after this point comes from the fixed ranker; the
